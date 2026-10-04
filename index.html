@@ -11,7 +11,14 @@
 <!-- Bungee is self-hosted (bungee.woff2 in this repo, license: OFL-Bungee.txt),
      so no visitor data goes to Google Fonts -->
 <link rel="preload" href="bungee.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧗</text></svg>">
+<!-- installable app: manifest + icons (+ sw.js, registered at the bottom) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Climb">
 <style>
   @font-face {
     font-family: 'Bungee';
@@ -250,6 +257,7 @@
     background: var(--char-2); box-shadow: inset 0 0 0 2px var(--yellow); }
   .host.on { display: block; }
   .host .only-you { margin: 10px 0 14px; font-size: 12px; font-weight: 700; color: var(--yellow); }
+  .forget-admin { font-size: 12px; font-weight: 700; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; padding: 0; }
   /* collapsible: the title row is the toggle */
   .host-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: 0; }
   .host-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
@@ -422,7 +430,7 @@
       <a class="dash-pill" id="dashLink" href="#">Dashboard</a>
     </div>
     <div class="host-body" id="hostBody">
-    <p class="only-you">Only you see this (it's the ?admin link)</p>
+    <p class="only-you">Only you see this. <button type="button" class="forget-admin" id="forgetAdmin">Forget admin on this device</button></p>
     <div class="stack">
       <select id="hostGym" aria-label="Gym"></select>
       <div class="chips" id="hostHours" role="group" aria-label="For how long"></div>
@@ -803,7 +811,11 @@ const Ink = (() => {
   const $ = id => document.getElementById(id);
   const DEMO = !ENDPOINT.startsWith('https://');
   const params = new URLSearchParams(location.search);
-  const ADMIN_KEY = params.get('admin') || '';
+  // Admin key: from the link (?admin=…) — and remembered on this device, so
+  // the installed app (which always opens the plain start address) still
+  // shows your admin panel. "Forget admin on this device" removes it.
+  if (params.get('admin')) { try { localStorage.setItem('cwm-admin', params.get('admin')); } catch (e) {} }
+  const ADMIN_KEY = params.get('admin') || (() => { try { return localStorage.getItem('cwm-admin') || ''; } catch (e) { return ''; } })();
   const store = {
     get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } },
     set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -1242,6 +1254,11 @@ const Ink = (() => {
       store.set('cwm-host-open', open);
     };
     setOpen(store.get('cwm-host-open', true));
+    $('forgetAdmin').addEventListener('click', () => {
+      try { localStorage.removeItem('cwm-admin'); } catch (e) {}
+      const u = new URL(location.href); u.searchParams.delete('admin'); u.searchParams.delete('view');
+      location.href = u.toString();
+    });
     $('hostToggle').addEventListener('click', () => setOpen($('hostBody').hidden));
     fillGymSelect($('hostGym'), false);
     const hours = chips($('hostHours'), [{ label: '1 hour', value: 1 }, { label: '2 hours', value: 2 }, { label: '3 hours', value: 3 }], 2);
@@ -1262,7 +1279,7 @@ const Ink = (() => {
      Data comes from Code.gs only when the key is right (emails inside).
      ═══════════════════════════════════════════════════════════════ */
   const DASH = ADMIN_KEY && params.get('view') === 'dashboard';
-  const urlWith = view => { const u = new URL(location.href); if (view) u.searchParams.set('view', view); else u.searchParams.delete('view'); return u.toString(); };
+  const urlWith = view => { const u = new URL(location.href); u.searchParams.delete('admin'); if (view) u.searchParams.set('view', view); else u.searchParams.delete('view'); return u.toString(); };
   if (ADMIN_KEY) {
     $('dashLink').href = urlWith('dashboard');
     $('dashBack').href = urlWith(null);
@@ -1525,6 +1542,11 @@ const Ink = (() => {
     setInterval(refresh, 60000);
   }
   if (DEMO) $('footer').textContent += ' (Demo mode: the sessions shown are examples.)';
+
+  // installable app + offline shell (needs https, e.g. GitHub Pages)
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
 })();
 </script>
 </body>
