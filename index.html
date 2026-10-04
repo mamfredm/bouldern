@@ -88,7 +88,7 @@
   /* ---- rest-day card (shown when I'm not at a gym) ----
      one flat row: charging battery on the left, the words on the right */
   .rest {
-    display: none; margin-top: 16px; padding: 16px 18px 16px 16px; border-radius: 16px;
+    display: none; margin: 0 0 32px; padding: 16px 18px 16px 16px; border-radius: 16px;
     background: var(--char-2);
     grid-template-columns: auto 1fr; gap: 18px; align-items: center;
   }
@@ -276,6 +276,17 @@
   <h1 id="title">Climb with me</h1>
   <p class="intro" id="intro"></p>
 
+  <!-- when I'm NOT at a gym: the rest-day card with the charging battery.
+     Same spot as the live banner, so this place always answers
+     "where is he right now?" -->
+  <div class="rest" id="rest" aria-live="polite">
+    <div class="battery" aria-hidden="true"><div class="lvl" id="batteryLvl"></div><b class="bolt">⚡</b></div>
+    <div class="rest-text">
+      <div class="rest-meta"><span class="rest-dot"><i></i>off the wall</span><span class="pct" id="chargeText"></span></div>
+      <strong id="restPun"></strong>
+      <span class="rest-next" id="restNext"></span>
+    </div>
+  </div>
   <!-- when I'm at a gym: the yellow "right now" banner -->
   <section class="live" id="live" aria-live="polite">
     <div class="pulse"><i></i>right now</div>
@@ -292,15 +303,6 @@
       <button type="button" class="pg-btn" id="pgNext">Later ›</button>
     </nav>
 
-    <!-- when I'm NOT at a gym: a calm rest-day card with a pun -->
-    <div class="rest" id="rest" aria-live="polite">
-      <div class="battery" aria-hidden="true"><div class="lvl" id="batteryLvl"></div><b class="bolt">⚡</b></div>
-      <div class="rest-text">
-        <div class="rest-meta"><span class="rest-dot"><i></i>off the wall</span><span class="pct" id="chargeText"></span></div>
-        <strong id="restPun"></strong>
-        <span class="rest-next" id="restNext"></span>
-      </div>
-    </div>
   </section>
 
   <section class="section" aria-labelledby="askTitle">
