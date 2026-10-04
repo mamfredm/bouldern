@@ -59,7 +59,7 @@
   .live {
     display: none; position: relative; overflow: hidden;
     background: var(--yellow); color: var(--char); border-radius: 20px;
-    padding: 20px 20px 18px; margin: 0 0 34px;
+    padding: 20px 20px 18px; margin: 0 0 32px;
     transform: rotate(-1deg);
     box-shadow: 0 6px 0 var(--yellow-deep);
   }
@@ -72,7 +72,7 @@
     animation: ping 1.6s ease-out infinite;
   }
   @keyframes ping { from { opacity: 0.7; transform: scale(0.5); } to { opacity: 0; transform: scale(1.6); } }
-  .live strong { display: block; font-size: clamp(26px, 7vw, 34px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+  .live strong { display: block; font-size: clamp(24px, 6.5vw, 32px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; text-wrap: balance; }
   .live span.until { display: block; margin-top: 6px; font-size: 15px; font-weight: 600; }
   .live a { color: var(--char); font-weight: 700; }
 
@@ -142,6 +142,11 @@
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { padding: 9px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--line); }
   .chip[aria-pressed="true"] { background: var(--yellow); color: var(--char); box-shadow: none; }
+  .date-row { display: grid; gap: 10px; }
+  input[type=date] { width: 100%; background: var(--char); border: 0; box-shadow: inset 0 0 0 1.5px var(--line);
+    border-radius: 12px; padding: 12px 14px; font-size: 16px; color: var(--cream); outline: none; min-height: 48px; }
+  input[type=date]:focus { box-shadow: inset 0 0 0 2px var(--yellow); }
+  input[type=date]::-webkit-calendar-picker-indicator { filter: invert(78%) sepia(60%) saturate(900%) hue-rotate(358deg); cursor: pointer; }
   .inline { display: flex; gap: 10px; }
   .inline input { flex: 1; min-width: 0; }
 
@@ -169,18 +174,19 @@
 </head>
 <body>
 <main class="wrap">
-  <div class="hello">
-    <div class="avatar" id="avatar" aria-hidden="true">🧗</div>
-    <p id="helloLine">Hey, nice to meet you on the wall</p>
-  </div>
-  <h1>Climb with me</h1>
-  <p class="intro" id="intro">I boulder most weeks and I'm always up for company. Jump into a session, come by when I'm at the gym, or suggest another one.</p>
-
+  <!-- live banner sits on top: when I'm at a gym, that's the news -->
   <section class="live" id="live" aria-live="polite">
     <div class="pulse"><i></i>right now</div>
     <strong id="liveGym">At Superblock</strong>
     <span class="until" id="liveUntil">until about 21:30, come by</span>
   </section>
+
+  <div class="hello">
+    <div class="avatar" id="avatar" aria-hidden="true">🧗</div>
+    <p id="helloLine">Hey, nice to meet you on the wall</p>
+  </div>
+  <h1 id="title">Climb with me</h1>
+  <p class="intro" id="intro"></p>
 
   <section class="section" aria-labelledby="sessionsTitle">
     <h2 id="sessionsTitle">Next sessions</h2>
@@ -189,29 +195,32 @@
 
   <section class="section" aria-labelledby="askTitle">
     <div class="panel">
-      <h2 id="askTitle">Another gym or day?</h2>
-      <p class="sub">Tell me where and roughly when. I'll answer by email, and if it works, it shows up here for others too.</p>
+      <h2 id="askTitle">Pitch me a session</h2>
+      <p class="sub">Name the gym, pick a day, and I'll check my skin and my calendar. If it works, it shows up here for others too.</p>
       <div class="stack">
         <select id="askGym" aria-label="Gym"></select>
-        <div class="chips" id="askWhen" role="group" aria-label="When"></div>
-        <textarea id="askNote" maxlength="400" placeholder="Anything else? A date, your level, a friend coming along"></textarea>
+        <div class="date-row">
+          <input type="date" id="askDate" aria-label="Day">
+          <div class="chips" id="askWhen" role="group" aria-label="Time of day"></div>
+        </div>
+        <textarea id="askNote" maxlength="400" placeholder="Anything else? An exact time, your level, a friend coming along"></textarea>
         <div class="fields">
           <input type="text" id="askName" maxlength="40" placeholder="First name" autocomplete="given-name">
           <input type="email" id="askEmail" maxlength="200" placeholder="Email for my answer" autocomplete="email">
         </div>
         <div class="err" id="askErr"></div>
-        <div><button class="btn" id="askBtn">Ask me</button></div>
+        <div><button class="btn" id="askBtn">Pitch it</button></div>
       </div>
     </div>
   </section>
 
   <section class="section" aria-labelledby="notifyTitle">
     <div class="panel">
-      <h2 id="notifyTitle">Get a heads-up</h2>
-      <p class="sub">One short email whenever a new session goes up. Nothing else.</p>
+      <h2 id="notifyTitle">Fresh beta by email</h2>
+      <p class="sub">One email when a new session goes up. No newsletter, no motivational quotes.</p>
       <div class="inline">
         <input type="email" id="notifyEmail" maxlength="200" placeholder="you@example.com" autocomplete="email" aria-label="Email">
-        <button class="btn" id="notifyBtn">Notify me</button>
+        <button class="btn" id="notifyBtn">Keep me posted</button>
       </div>
       <div class="err" id="notifyErr" style="margin-top:8px"></div>
     </div>
@@ -230,7 +239,7 @@
     </div>
   </section>
 
-  <footer id="footer">Only first names are shown here. Your email is used just for the invite or the updates you ask for, and every email has a way out.</footer>
+  <footer id="footer">Only first names on here, emails stay with me, and every email has an exit. No hidden grades.</footer>
 </main>
 <script>
 /* ═══════════════════════════════════════════════════════════════
@@ -502,8 +511,29 @@ const Ink = (() => {
     ]}
   ];
 
-  // the "when" chips in "Another gym or day?"
-  const WHEN_OPTIONS = ['Weekday evening', 'Weekend morning', 'Weekend afternoon', 'Whenever'];
+  // the time-of-day chips next to the date picker in "Pitch me a session"
+  const WHEN_OPTIONS = ['Morning', 'Afternoon', 'Evening'];
+  const PITCH_DAYS_AHEAD = 60;   // how far ahead people can pick a day
+
+  // ✏️ ALL THE WORDING in one place. {gym}, {time}, {names}, {n} get filled in.
+  const TEXT = {
+    title:      'Climb with me',                       // ← pick your new title here
+    intro:      'I\'m at the wall most days anyway. Bring shoes, skin and questionable beta.',
+    liveTitle:  'At {gym}',                             // ← pick your banner line here
+    liveUntil:  'until about {time}, come by. ',        //    (the "Directions" link follows)
+    goingNone:  'Solo session so far. Ruin that.',
+    goingMeOnly:'You and me so far',
+    goingFew:   '{names} are in',                       // 1–3 people
+    goingOne:   '{names} is in',
+    goingMany:  '{names} and {n} others. It\'s getting crowded on the mats.',
+    joined:     'You\'re on the list. Don\'t flake, the wall remembers.',
+    cantMake:   'Skin needs a break',
+    emptyList:  'Nothing planned yet. My forearms are on vacation. Pitch me a day below.',
+    pitchSent:  'Pitch received. Answer coming by email, probably with a gif.',
+    confirmMail:'Check your inbox and confirm. Yes, one more click. GDPR says hi.',
+    alreadyOn:  'You\'re already on the list.'
+  };
+  const fill = (t, v) => t.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
 
   /* ═══════════════════════════════════════════════════════════════ */
 
@@ -524,6 +554,9 @@ const Ink = (() => {
   const mapsUrl = q => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
 
   /* ---------- top ---------- */
+  $('title').textContent = TEXT.title;
+  document.title = TEXT.title;
+  $('intro').textContent = TEXT.intro;
   if (HOST.name) {
     $('helloLine').textContent = `Hey, I'm ${HOST.name}. Nice to meet you on the wall`;
     $('avatar').textContent = HOST.name[0].toUpperCase();
@@ -572,18 +605,19 @@ const Ink = (() => {
   }
   function goingText(names, mine) {
     const list = names.slice();
-    if (!list.length) return mine ? 'You and me so far' : 'Just me so far';
-    if (list.length <= 3) return list.join(', ') + ' coming';
-    return list.slice(0, 3).join(', ') + ` and ${list.length - 3} more coming`;
+    if (!list.length) return mine ? TEXT.goingMeOnly : TEXT.goingNone;
+    if (list.length === 1) return fill(TEXT.goingOne, { names: list[0] });
+    if (list.length <= 3) return fill(TEXT.goingFew, { names: list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1] });
+    return fill(TEXT.goingMany, { names: list.slice(0, 2).join(', '), n: list.length - 2 });
   }
 
   /* ---------- live banner ---------- */
   function renderLive(now) {
     const el = $('live');
     if (!now) { el.classList.remove('on'); return; }
-    $('liveGym').textContent = 'At ' + now.gym;
+    $('liveGym').textContent = fill(TEXT.liveTitle, { gym: now.gym });
     const until = $('liveUntil');
-    until.textContent = `until about ${fmtTime(now.until)}, come by. `;
+    until.textContent = fill(TEXT.liveUntil, { time: fmtTime(now.until), gym: now.gym });
     const a = document.createElement('a');
     a.href = mapsUrl(now.location || now.gym);
     a.target = '_blank'; a.rel = 'noopener';
@@ -597,7 +631,10 @@ const Ink = (() => {
     const box = $('sessions');
     box.innerHTML = '';
     if (!list.length) {
-      box.innerHTML = '<div class="empty-state">Nothing planned for the next weeks yet. Suggest a gym and a day below and I\'ll set one up.</div>';
+      const e = document.createElement('div');
+      e.className = 'empty-state';
+      e.textContent = TEXT.emptyList;
+      box.appendChild(e);
       return;
     }
     list.forEach(s => box.appendChild(sessionCard(s)));
@@ -643,7 +680,9 @@ const Ink = (() => {
     const actions = card.querySelector('.row-actions');
     const form = card.querySelector('.join-form');
     if (mine) {
-      actions.innerHTML = '<span class="you-going">You\'re going</span><button class="link-btn" type="button">Can\'t make it</button>';
+      actions.innerHTML = '<span class="you-going"></span><button class="link-btn" type="button"></button>';
+      actions.querySelector('.you-going').textContent = TEXT.joined;
+      actions.querySelector('button').textContent = TEXT.cantMake;
       actions.querySelector('button').addEventListener('click', () => leaveSession(s, card));
     } else {
       const join = document.createElement('button');
@@ -743,6 +782,11 @@ const Ink = (() => {
   /* ---------- ask for another gym / day ---------- */
   fillGymSelect($('askGym'), true);
   const askWhen = chips($('askWhen'), WHEN_OPTIONS, null);
+  // local date as YYYY-MM-DD (toISOString would use UTC and can be a day off at night)
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const maxD = new Date(); maxD.setDate(maxD.getDate() + PITCH_DAYS_AHEAD);
+  $('askDate').min = iso(new Date());
+  $('askDate').max = iso(maxD);
   $('askName').value = me.name; $('askEmail').value = me.email;
   $('askBtn').addEventListener('click', async () => {
     const err = $('askErr'), gym = $('askGym').value, name = $('askName').value.trim(), email = $('askEmail').value.trim();
@@ -752,13 +796,19 @@ const Ink = (() => {
     err.textContent = '';
     const btn = $('askBtn'); btn.disabled = true;
     const minWait = new Promise(r => setTimeout(r, Ink.wait(btn)));
-    const res = await post({ action: 'request', gym, when: askWhen() || '', note: $('askNote').value.trim(), name, email }).catch(() => null);
+    const dv = $('askDate').value;
+    const dayLabel = dv ? new Date(dv + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+    const when = [dayLabel, (askWhen() || '').toLowerCase()].filter(Boolean).join(', ') || 'flexible';
+    const res = await post({ action: 'request', gym, when, note: $('askNote').value.trim(), name, email }).catch(() => null);
     await minWait;
     btn.disabled = false;
     if (!res || !res.ok) { err.textContent = 'That didn\'t go through. Try again in a moment.'; return; }
     me = { name, email }; store.set('cwm-me', me);
     const panel = btn.closest('.panel');
-    panel.querySelector('.stack').innerHTML = `<p class="ok-note">${DEMO ? 'Demo mode: nothing was sent.' : 'Sent. I\'ll answer by email.'}</p>`;
+    const done = document.createElement('p');
+    done.className = 'ok-note';
+    done.textContent = DEMO ? 'Demo mode: nothing was sent.' : TEXT.pitchSent;
+    panel.querySelector('.stack').replaceChildren(done);
   });
   Ink.attach($('askBtn'), 'drip');
 
@@ -774,7 +824,10 @@ const Ink = (() => {
     await minWait;
     btn.disabled = false;
     if (!res || !res.ok) { err.textContent = 'That didn\'t go through. Try again in a moment.'; return; }
-    btn.closest('.inline').outerHTML = `<p class="ok-note">${DEMO ? 'Demo mode: nothing was sent.' : (res.already ? 'You\'re already on the list.' : 'Check your inbox and tap the confirm link.')}</p>`;
+    const done = document.createElement('p');
+    done.className = 'ok-note';
+    done.textContent = DEMO ? 'Demo mode: nothing was sent.' : (res.already ? TEXT.alreadyOn : TEXT.confirmMail);
+    btn.closest('.inline').replaceWith(done);
   });
   Ink.attach($('notifyBtn'), 'drip');
 
