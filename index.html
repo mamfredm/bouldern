@@ -291,6 +291,11 @@
   .sub-row a { color: var(--cream); text-decoration: none; overflow-wrap: anywhere; }
   .sub-row small { color: var(--dim); font-size: 12px; white-space: nowrap; }
   #subFilter { margin-bottom: 6px; }
+  .del-btn { font-size: 12px; font-weight: 800; color: var(--muted); padding: 6px 10px; border-radius: 8px;
+    box-shadow: inset 0 0 0 1.5px var(--line); }
+  .del-btn.armed { background: #ff5a4e; color: var(--char); box-shadow: none; }
+  .del-btn:disabled { opacity: 0.5; }
+  #dashPager { margin: 4px 0 0; }
 
   /* ---- ink (same engine as the invite pages) ---- */
   .ink { position: relative; overflow: hidden; isolation: isolate; }
@@ -414,6 +419,11 @@
   <section class="dash-sec">
     <h2>Who's in</h2>
     <div id="dashSessions"></div>
+    <nav class="pager" id="dashPager" aria-label="More sessions">
+      <button type="button" class="pg-btn" id="dPrev">‹ Earlier</button>
+      <span class="pg-count" id="dCount" aria-live="polite"></span>
+      <button type="button" class="pg-btn" id="dNext">Later ›</button>
+    </nav>
   </section>
 
   <section class="dash-sec">
@@ -1261,6 +1271,14 @@ const Ink = (() => {
       return;
     }
     dashData = data;
+    renderDash();
+  }
+
+  // draws everything from dashData (also after a delete, without reloading)
+  const DASH_PER_PAGE = 3;   // ✏️ sessions per page on the dashboard
+  let dashPage = 0;
+  function renderDash() {
+    const data = dashData;
     const going = data.sessions.reduce((n, s) => n + s.people.filter(p => p.status === 'going').length, 0);
     const active = data.subscribers.filter(x => x.status === 'active').length;
     const recent = data.requests.filter(r => Date.now() - new Date(r.at) < 30 * 86400000).length;
@@ -1271,10 +1289,16 @@ const Ink = (() => {
     [[data.sessions.length, 'upcoming sessions'], [going, 'sign-ups'], [recent, 'pitches, last 30 days'], [active, 'on the ping list']]
       .forEach(([n, label]) => { const t = el('div', 'stat'); t.append(el('b', '', n), el('span', '', label)); stats.appendChild(t); });
 
-    // who's in
+    // who's in — paged, 3 at a time
     const box = $('dashSessions'); box.innerHTML = '';
     if (!data.sessions.length) box.appendChild(el('p', 'muted-line', 'No sessions in the calendar for the next weeks.'));
-    data.sessions.forEach(s => {
+    const dPages = Math.max(1, Math.ceil(data.sessions.length / DASH_PER_PAGE));
+    dashPage = Math.min(dashPage, dPages - 1);
+    $('dashPager').classList.toggle('on', dPages > 1);
+    $('dCount').textContent = `${dashPage + 1} / ${dPages}`;
+    $('dPrev').disabled = dashPage === 0;
+    $('dNext').disabled = dashPage >= dPages - 1;
+    data.sessions.slice(dashPage * DASH_PER_PAGE, (dashPage + 1) * DASH_PER_PAGE).forEach(s => {
       const c = el('div', 'dcard'), head = el('div', 'dcard-head');
       const goingP = s.people.filter(p => p.status === 'going'), leftP = s.people.filter(p => p.status !== 'going');
       head.append(el('b', '', `${fmtDate(s.start)}, ${fmtTime(s.start)} at ${s.gym}`), el('span', '', `${goingP.length} going`));
@@ -1337,13 +1361,42 @@ const Ink = (() => {
       const a = el('a', '', x.email); a.href = 'mailto:' + x.email;
       left.appendChild(a);
       const right = el('div'); right.style.display = 'flex'; right.style.gap = '8px'; right.style.alignItems = 'center';
-      right.append(el('span', 'badge ' + x.status, x.status), el('small', '', fmtStamp(x.at)));
+      const del = el('button', 'del-btn', 'Delete'); del.type = 'button';
+      del.setAttribute('aria-label', 'Delete ' + x.email);
+      del.onclick = () => deleteSub(x.email, del);
+      right.append(el('span', 'badge ' + x.status, x.status), el('small', '', fmtStamp(x.at)), del);
       row.append(left, right);
       box.appendChild(row);
     });
   }
 
+  // first tap: "Sure?" (3 s window), second tap: delete from the sheet
+  async function deleteSub(email, btn) {
+    if (!btn.classList.contains('armed')) {
+      btn.classList.add('armed'); btn.textContent = 'Sure?';
+      clearTimeout(btn._t);
+      btn._t = setTimeout(() => { btn.classList.remove('armed'); btn.textContent = 'Delete'; }, 3000);
+      return;
+    }
+    clearTimeout(btn._t);
+    btn.disabled = true; btn.textContent = '…';
+    let res;
+    try { res = DEMO ? { ok: true } : await (await fetch(ENDPOINT, { method: 'POST', body: JSON.stringify({ action: 'deleteSubscriber', key: ADMIN_KEY, email }) })).json(); }
+    catch (e) { res = null; }
+    if (!res || !res.ok) {
+      btn.disabled = false; btn.classList.remove('armed');
+      btn.textContent = res && res.error === 'not_found' ? 'Gone already' : 'Failed';
+      if (res && res.error === 'not_found') dashData.subscribers = dashData.subscribers.filter(x => x.email !== email);
+      setTimeout(renderDash, 1200);
+      return;
+    }
+    dashData.subscribers = dashData.subscribers.filter(x => x.email !== email);
+    renderDash();
+  }
+
   if (DASH) {
+    $('dPrev').onclick = () => { dashPage--; renderDash(); };
+    $('dNext').onclick = () => { dashPage++; renderDash(); };
     document.querySelector('main.wrap:not(.dash)').hidden = true;
     $('dash').hidden = false;
     document.title = 'Dashboard';
