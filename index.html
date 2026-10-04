@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Climb with me</title>
+<meta property="og:title" content="Climb with me 🧗">
+<meta property="og:description" content="Where and when I'm bouldering next. Come along.">
+<meta name="description" content="Where and when I'm bouldering next. Come along.">
+<meta name="theme-color" content="#1c1b19">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧗</text></svg>">
+<style>
+  /* ═══════════════════════════════════════════════════════════════
+     CLIMB WITH ME — semi-public bouldering schedule.
+     Anyone with the link sees upcoming sessions (from your bouldering
+     calendar), can join one, ask for another gym/day, or sign up for
+     updates. Open with ?admin=YOUR-KEY for your "I'm at the gym" switch.
+     All wording + gyms you might change are marked with ✏️ in the script.
+     ═══════════════════════════════════════════════════════════════ */
+  :root {
+    --char: #1c1b19; --char-2: #262420; --char-3: #36332d; --line: #3f3b34;
+    --yellow: #fcba01; --yellow-deep: #b98700; --cream: #fff8e6; --muted: #b4ad9f; --dim: #8b8579;
+    --sans: 'Avenir Next', 'Helvetica Neue', Arial, sans-serif;
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    color-scheme: dark;
+  }
+  :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { margin: 0; background: var(--char); color: var(--cream); font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
+  body {
+    min-height: 100vh;
+    background-image: radial-gradient(rgba(252, 186, 1, 0.07) 1.3px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; border: 0; background: none; }
+  :focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
+  a { color: var(--yellow); }
+
+  .wrap { max-width: 540px; margin: 0 auto; padding: 44px 20px 70px; }
+
+  /* ---- top ---- */
+  .hello { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .avatar {
+    width: 52px; height: 52px; border-radius: 16px; flex: none; overflow: hidden;
+    background: var(--yellow); color: var(--char); display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 22px; transform: rotate(-4deg);
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .hello p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.4; }
+  h1 {
+    font-size: clamp(40px, 11vw, 64px); font-weight: 800; letter-spacing: -0.045em; line-height: 0.95;
+    margin: 0 0 14px;
+  }
+  .intro { color: var(--muted); font-size: 16px; line-height: 1.55; margin: 0 0 30px; max-width: 30em; }
+
+  /* ---- the live banner: the one loud thing on the page ---- */
+  .live {
+    display: none; position: relative; overflow: hidden;
+    background: var(--yellow); color: var(--char); border-radius: 20px;
+    padding: 20px 20px 18px; margin: 0 0 34px;
+    transform: rotate(-1deg);
+    box-shadow: 0 6px 0 var(--yellow-deep);
+  }
+  .live.on { display: block; animation: liveIn 0.6s var(--ease); }
+  @keyframes liveIn { from { opacity: 0; transform: rotate(-1deg) translateY(10px) scale(0.98); } }
+  .live .pulse { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .live .pulse i { width: 10px; height: 10px; border-radius: 50%; background: var(--char); position: relative; }
+  .live .pulse i::after {
+    content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--char);
+    animation: ping 1.6s ease-out infinite;
+  }
+  @keyframes ping { from { opacity: 0.7; transform: scale(0.5); } to { opacity: 0; transform: scale(1.6); } }
+  .live strong { display: block; font-size: clamp(26px, 7vw, 34px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+  .live span.until { display: block; margin-top: 6px; font-size: 15px; font-weight: 600; }
+  .live a { color: var(--char); font-weight: 700; }
+
+  /* ---- section headings ---- */
+  h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 14px; }
+  .section { margin-top: 40px; }
+
+  /* ---- sessions ---- */
+  .sessions { display: grid; gap: 12px; }
+  .session {
+    display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: start;
+    background: var(--char-2); border-radius: 18px; padding: 16px; box-shadow: inset 0 0 0 1.5px var(--line);
+  }
+  .session.mine { box-shadow: inset 0 0 0 2px var(--yellow); }
+  .day { text-align: center; border-radius: 14px; background: var(--char-3); padding: 9px 0 8px; }
+  .day b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .day span { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 3px; }
+  .session.today .day { background: var(--yellow); color: var(--char); }
+  .session.today .day span { color: var(--char); }
+  .time { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .gym { margin-top: 2px; font-size: 15px; font-weight: 600; }
+  .gym a { color: inherit; text-decoration-color: rgba(255, 248, 230, 0.3); text-underline-offset: 3px; }
+  .label { margin-top: 2px; font-size: 13px; color: var(--dim); }
+  .going { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .going.empty { color: var(--dim); }
+  .row-actions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--yellow); color: var(--char); font-weight: 800; font-size: 15px;
+    padding: 12px 20px; border-radius: 12px; box-shadow: 0 4px 0 var(--yellow-deep);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--yellow-deep); }
+  .btn.ghost { background: transparent; color: var(--cream); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .btn.ghost:active { transform: translateY(1px); }
+  .link-btn { color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 6px 2px; }
+  .you-going { font-size: 14px; font-weight: 700; color: var(--yellow); }
+
+  /* inline join form */
+  .join-form { grid-column: 1 / -1; display: none; gap: 10px; margin-top: 4px; }
+  .join-form.open { display: grid; animation: formIn 0.35s var(--ease); }
+  @keyframes formIn { from { opacity: 0; transform: translateY(-6px); } }
+  .fields { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+  @media (max-width: 420px) { .fields { grid-template-columns: 1fr; } }
+  input[type=text], input[type=email], select, textarea {
+    width: 100%; background: var(--char); border: 0; box-shadow: inset 0 0 0 1.5px var(--line);
+    border-radius: 12px; padding: 12px 14px; font-size: 16px; color: var(--cream); outline: none;
+  }
+  input:focus, select:focus, textarea:focus { box-shadow: inset 0 0 0 2px var(--yellow); }
+  ::placeholder { color: var(--dim); }
+  select { -webkit-appearance: none; appearance: none; padding-right: 38px;
+    background: var(--char) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23fcba01' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 14px center; }
+  textarea { resize: vertical; min-height: 74px; }
+  .consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--muted); line-height: 1.45; cursor: pointer; }
+  .consent input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--yellow); flex: none; }
+  .err { color: #ff9b7a; font-size: 13px; font-weight: 600; min-height: 1em; }
+  .ok-note { font-size: 14px; font-weight: 600; color: var(--yellow); }
+
+  .empty-state { background: var(--char-2); border-radius: 18px; padding: 20px; color: var(--muted); line-height: 1.5; box-shadow: inset 0 0 0 1.5px var(--line); }
+  .loading { color: var(--dim); font-size: 14px; }
+
+  /* ---- ask / notify panels ---- */
+  .panel { background: var(--char-2); border-radius: 20px; padding: 20px; box-shadow: inset 0 0 0 1.5px var(--line); }
+  .panel p.sub { margin: -6px 0 16px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .stack { display: grid; gap: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 9px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--line); }
+  .chip[aria-pressed="true"] { background: var(--yellow); color: var(--char); box-shadow: none; }
+  .inline { display: flex; gap: 10px; }
+  .inline input { flex: 1; min-width: 0; }
+
+  /* ---- host panel (?admin=…) ---- */
+  .host { display: none; margin-top: 40px; border-radius: 20px; padding: 20px; background: var(--char-3); }
+  .host.on { display: block; }
+  .host h2 { font-size: 18px; }
+
+  footer { margin-top: 48px; color: var(--dim); font-size: 12px; line-height: 1.6; }
+
+  /* ---- ink (same engine as the invite pages) ---- */
+  .ink { position: relative; overflow: hidden; isolation: isolate; }
+  .ink-top {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background: var(--char); color: var(--yellow);
+    display: flex; align-items: center; justify-content: center; border-radius: inherit;
+    -webkit-mask: linear-gradient(transparent, transparent); mask: linear-gradient(transparent, transparent);
+    will-change: mask;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="hello">
+    <div class="avatar" id="avatar" aria-hidden="true">🧗</div>
+    <p id="helloLine">Hey, nice to meet you on the wall</p>
+  </div>
+  <h1>Climb with me</h1>
+  <p class="intro" id="intro">I boulder most weeks and I'm always up for company. Jump into a session, come by when I'm at the gym, or suggest another one.</p>
+
+  <section class="live" id="live" aria-live="polite">
+    <div class="pulse"><i></i>right now</div>
+    <strong id="liveGym">At Superblock</strong>
+    <span class="until" id="liveUntil">until about 21:30, come by</span>
+  </section>
+
+  <section class="section" aria-labelledby="sessionsTitle">
+    <h2 id="sessionsTitle">Next sessions</h2>
+    <div class="sessions" id="sessions"><p class="loading">Loading sessions…</p></div>
+  </section>
+
+  <section class="section" aria-labelledby="askTitle">
+    <div class="panel">
+      <h2 id="askTitle">Another gym or day?</h2>
+      <p class="sub">Tell me where and roughly when. I'll answer by email, and if it works, it shows up here for others too.</p>
+      <div class="stack">
+        <select id="askGym" aria-label="Gym"></select>
+        <div class="chips" id="askWhen" role="group" aria-label="When"></div>
+        <textarea id="askNote" maxlength="400" placeholder="Anything else? A date, your level, a friend coming along"></textarea>
+        <div class="fields">
+          <input type="text" id="askName" maxlength="40" placeholder="First name" autocomplete="given-name">
+          <input type="email" id="askEmail" maxlength="200" placeholder="Email for my answer" autocomplete="email">
+        </div>
+        <div class="err" id="askErr"></div>
+        <div><button class="btn" id="askBtn">Ask me</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="notifyTitle">
+    <div class="panel">
+      <h2 id="notifyTitle">Get a heads-up</h2>
+      <p class="sub">One short email whenever a new session goes up. Nothing else.</p>
+      <div class="inline">
+        <input type="email" id="notifyEmail" maxlength="200" placeholder="you@example.com" autocomplete="email" aria-label="Email">
+        <button class="btn" id="notifyBtn">Notify me</button>
+      </div>
+      <div class="err" id="notifyErr" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <section class="host" id="host" aria-labelledby="hostTitle">
+    <h2 id="hostTitle">I'm at the gym</h2>
+    <div class="stack">
+      <select id="hostGym" aria-label="Gym"></select>
+      <div class="chips" id="hostHours" role="group" aria-label="For how long"></div>
+      <div class="row-actions">
+        <button class="btn" id="hostIn">I'm here</button>
+        <button class="btn ghost" id="hostOut">I've left</button>
+      </div>
+      <div class="err" id="hostErr"></div>
+    </div>
+  </section>
+
+  <footer id="footer">Only first names are shown here. Your email is used just for the invite or the updates you ask for, and every email has a way out.</footer>
+</main>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   INK — the rising-paint fill on the yellow buttons (same engine as the invite pages).
+   Ink.attach(element, 'brush' | 'splash' | 'drip') adds a yellow (or,
+   on #yes, charcoal) copy of the element's content on top, revealed
+   through a mask that's recalculated every screen refresh. The fill is
+   steered by measured coverage, so it grows evenly and ends firmly.
+   Ink.wait(element) = ms until that element is fully inked (use it as
+   the delay before moving to the next screen).
+   ═══════════════════════════════════════════════════════════════ */
+const Ink = (() => {
+  const canHover = window.matchMedia('(hover: hover)').matches;
+  // ✏️ fill speed in ms. Phones get more time: a tap is over in an instant,
+  //    so the ink needs longer to actually be seen. Hover can be quicker.
+  const DUR_IN = canHover ? 540 : 820, DUR_OUT = canHover ? 400 : 450;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 200));
+  const HIDDEN = 'linear-gradient(transparent, transparent)';
+
+  const rng = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const clamp01 = t => t < 0 ? 0 : t > 1 ? 1 : t;
+  const easeOut = t => 1 - Math.pow(1 - clamp01(t), 1.7);
+  const fillCurve = p => Math.pow(p, 1.15);
+
+  function plan(style, w, h, seed) {
+    const r = rng(seed), shapes = [], diag = Math.hypot(w, h);
+    if (style === 'splash') {
+      const ox = w * (0.05 + r() * 0.2), oy = h * (0.6 + r() * 0.35);
+      const n = Math.max(18, Math.min(48, Math.round(w * h / 1400)));
+      for (let i = 0; i < n; i++) {
+        const x = -0.05 * w + r() * 1.1 * w, y = -0.1 * h + r() * 1.2 * h;
+        const d = Math.hypot(x - ox, y - oy) / diag;
+        shapes.push({ k: 'c', x, y, a: d * 0.55 + r() * 0.1, len: 0.38, R: diag * (0.12 + r() * 0.12) });
+      }
+      for (let i = 0; i < 14; i++) {
+        const ang = r() * Math.PI * 2, dist = diag * (0.1 + r() * 0.35);
+        shapes.push({ k: 'c', x: ox + Math.cos(ang) * dist, y: oy + Math.sin(ang) * dist * 0.6, a: r() * 0.3, len: 0.15, R: 1.5 + r() * 3 });
+      }
+    } else if (style === 'brush') {
+      const rows = Math.max(3, Math.round(h / 22));
+      for (let i = 0; i < rows; i++) {
+        const rad = h / rows * 0.62 + r() * 2;
+        shapes.push({ k: 'stroke', y: (i + 0.5) * h / rows, rad, dir: i % 2 ? -1 : 1, W: w + 2 * rad,
+                      a: i * (0.45 / rows) + r() * 0.04, len: 0.5 });
+      }
+    } else {
+      const cols = Math.max(7, Math.round(w / 18));
+      // evenly spread start times (shuffled), so columns rise one after another
+      const order = [...Array(cols).keys()].sort(() => r() - 0.5);
+      for (let i = 0; i < cols; i++) {
+        const cw = w / cols * (1.35 + r() * 0.35);
+        shapes.push({ k: 'drip', x: (i + 0.5) * w / cols, cw, a: order[i] / cols * 0.35 + r() * 0.03,
+                      len: 0.55 + r() * 0.15, H: h + 2 * cw, h });
+      }
+    }
+    return shapes;
+  }
+
+  function covers(s, t, x, y) {
+    if (s.k === 'c') return Math.hypot(x - s.x, y - s.y) <= s.R * t;
+    if (s.k === 'stroke') {
+      const L = s.W * t, x0 = s.dir > 0 ? -s.rad : (s.W - s.rad) - L, tipX = s.dir > 0 ? x0 + L : x0;
+      return (x >= x0 && x <= x0 + L && Math.abs(y - s.y) <= s.rad) || Math.hypot(x - tipX, y - s.y) <= s.rad;
+    }
+    // 'drip' rises from the bottom (like a glass filling up), rounded top
+    const half = s.cw / 2, top = s.h + half - s.H * t;   // head centre: starts half a column below the edge
+    return (Math.abs(x - s.x) <= half && y >= top) || Math.hypot(x - s.x, y - top) <= half;
+  }
+
+  /* When (as shape growth t, 0..1) does shape s first cover point (x, y)?
+     Exact formulas for the simple shapes; a short binary search for the
+     rest (hearts). Infinity = this shape never reaches the point. */
+  function need(s, x, y, w, h) {
+    if (s.k === 'c') return Math.hypot(x - s.x, y - s.y) / s.R;
+    if (s.k === 'soft') return Math.hypot(x - s.x, y - s.y) / (s.R * 0.8);
+    if (s.k === 'stroke') {
+      const dy = Math.abs(y - s.y);
+      if (dy > s.rad) return Infinity;
+      const reach = Math.sqrt(s.rad * s.rad - dy * dy);
+      const L = s.dir > 0 ? x + s.rad - reach : s.W - s.rad - x - reach;
+      return Math.max(0, L) / s.W;
+    }
+    if (s.k === 'drip') {                // rising column with a round head
+      const dx = Math.abs(x - s.x), half = s.cw / 2;
+      if (dx > half) return Infinity;
+      return Math.max(0, s.h + half - y - Math.sqrt(half * half - dx * dx)) / s.H;
+    }
+    if (!covers(s, 1, x, y, w, h)) return Infinity;
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; if (covers(s, m, x, y, w, h)) hi = m; else lo = m; }
+    return hi;
+  }
+
+  /* Coverage → progress lookup table. For every sample point we compute
+     the moment it gets covered, sort those moments, and read off the
+     quantiles: lut[c] = raw progress at which c % of the card is inked.
+     Animating through it makes the VISIBLE fill grow evenly. This is a
+     direct calculation (no frame-by-frame simulation), so it's cheap. */
+  function buildLUT(shapes, w, h) {
+    const gx = Math.min(64, Math.max(26, Math.round(w / 4)));
+    const gy = Math.min(32, Math.max(13, Math.round(h / 3)));
+    const times = [];
+    for (let j = 0; j < gy; j++) {
+      const y = (j + 0.5) * h / gy;
+      for (let i = 0; i < gx; i++) {
+        const x = (i + 0.5) * w / gx;
+        let best = Infinity;
+        for (const s of shapes) {
+          const t = need(s, x, y, w, h);
+          if (t > 1) continue;
+          const q = s.a + s.len * (1 - Math.pow(1 - t, 1 / 1.7));   // inverse of easeOut
+          if (q < best) best = q;
+        }
+        if (best !== Infinity) times.push(best);
+      }
+    }
+    times.sort((a, b) => a - b);
+    const n = times.length, lut = [0];
+    for (let k = 1; k <= 100; k++) {
+      if (!n) { lut.push(k / 100); continue; }
+      const f = k / 100 * (n - 1), i = Math.floor(f);
+      lut.push(times[i] + (times[Math.min(n - 1, i + 1)] - times[i]) * (f - i));
+    }
+    return lut;
+  }
+
+  function qFor(el, c) {
+    const f = clamp01(c) * 100, i = Math.floor(f), lut = el._lut;
+    return i >= 100 ? lut[100] : lut[i] + (lut[i + 1] - lut[i]) * (f - i);
+  }
+
+  function maskFor(el, p) {
+    const layers = [], q = qFor(el, fillCurve(p)), f = n => n.toFixed(1);
+    for (const s of el._shapes) {
+      const t = easeOut((q - s.a) / s.len);
+      if (t <= 0) continue;
+      if (s.k === 'c') {
+        layers.push(`radial-gradient(circle at ${f(s.x)}px ${f(s.y)}px, #000 ${f(s.R * t)}px, transparent ${f(s.R * t + 0.8)}px)`);
+      } else if (s.k === 'stroke') {
+        const L = s.W * t, x0 = s.dir > 0 ? -s.rad : (s.W - s.rad) - L, tipX = s.dir > 0 ? x0 + L : x0;
+        layers.push(`linear-gradient(#000, #000) ${f(x0)}px ${f(s.y - s.rad)}px / ${f(L)}px ${f(2 * s.rad)}px no-repeat`);
+        layers.push(`radial-gradient(circle at ${f(tipX)}px ${f(s.y)}px, #000 ${f(s.rad)}px, transparent ${f(s.rad + 0.8)}px)`);
+      } else {
+        const half = s.cw / 2, top = s.h + half - s.H * t;
+        if (top < s.h) layers.push(`linear-gradient(#000, #000) ${f(s.x - half)}px ${f(top)}px / ${f(s.cw)}px ${f(s.h - top + 1)}px no-repeat`);
+        layers.push(`radial-gradient(circle at ${f(s.x)}px ${f(top)}px, #000 ${f(half)}px, transparent ${f(half + 0.8)}px)`);
+      }
+    }
+    // last stretch: fade in a full layer, so leftover soft rims / tiny gaps
+    // blend into "full" instead of snapping in a single frame
+    if (p > 0.82) {
+      const o = Math.pow((p - 0.82) / 0.18, 1.5).toFixed(3);
+      layers.push(`linear-gradient(rgba(0,0,0,${o}), rgba(0,0,0,${o}))`);
+    }
+    return layers.length ? layers.join(',') : HIDDEN;
+  }
+
+  function paint(el) {
+    const full = el._p >= 0.995;
+    const m = full ? 'none' : el._p <= 0 ? HIDDEN : maskFor(el, el._p);   // full → no mask at all
+    el._top.style.webkitMask = m;
+    el._top.style.mask = m;
+    el.classList.toggle('ink-full', full);
+  }
+
+  function ensurePlan(el) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return false;          // not on screen yet
+    const key = Math.round(r.width) + 'x' + Math.round(r.height);
+    if (el._planKey !== key) {
+      el._shapes = plan(el._style, r.width, r.height, el._seed);
+      el._lut = buildLUT(el._shapes, r.width, r.height);
+      el._planKey = key;
+    }
+    return true;
+  }
+
+  function go(el, target) {
+    if (!el._top) return;
+    el._target = target;
+    if (reduceMotion || !ensurePlan(el)) { el._p = target; paint(el); return; }
+    if (el._raf) return;
+    let last = performance.now();
+    const step = now => {
+      const dt = now - last; last = now;
+      const dir = Math.sign(el._target - el._p);
+      el._p = clamp01(el._p + dir * dt / (dir > 0 ? DUR_IN : DUR_OUT));
+      if ((dir > 0 && el._p > el._target) || (dir < 0 && el._p < el._target)) el._p = el._target;
+      paint(el);
+      el._raf = el._p !== el._target ? requestAnimationFrame(step) : null;
+    };
+    el._raf = requestAnimationFrame(step);
+  }
+
+  let seedCounter = 97;
+  function attach(el, style) {
+    if (el._top) return el;
+    el._style = style;
+    el._seed = (seedCounter = (seedCounter * 48271) % 2147483647);
+    el._p = 0;
+    el.classList.add('ink');
+    const top = document.createElement('span');
+    top.className = 'ink-top';
+    top.setAttribute('aria-hidden', 'true');
+    top.innerHTML = el.innerHTML;
+    el.appendChild(top);
+    el._top = top;
+    paint(el);
+    if (canHover) {
+      el.addEventListener('mouseenter', () => go(el, 1));
+      el.addEventListener('mouseleave', () => { if (!el.classList.contains('selected')) go(el, 0); });
+    }
+    el.addEventListener('click', () => {
+      go(el, 1);
+      // siblings that just lost "selected" pour their ink back out
+      if (el.parentElement) [...el.parentElement.children].forEach(o => {
+        if (o !== el && o._top && !o.classList.contains('selected')) go(o, 0);
+      });
+    });
+    idle(() => ensurePlan(el));     // measure ahead of the first tap when possible
+    // …and again whenever it appears / changes size (e.g. its screen opens)
+    if (window.ResizeObserver) new ResizeObserver(() => idle(() => ensurePlan(el))).observe(el);
+    return el;
+  }
+
+  // ms until el is fully inked — use as the delay before leaving the screen
+  const wait = el => reduceMotion || !el || !el._top ? 120 : Math.round((1 - el._p) * DUR_IN) + 40;
+
+  return { attach, go, wait };
+})();
+</script>
+<script>
+(function () {
+  /* ═══════════════════════════════════════════════════════════════
+     ✏️ SETTINGS
+     ═══════════════════════════════════════════════════════════════ */
+
+  // the /exec URL of this repo's Code.gs. Until it's set, the page runs
+  // in demo mode with made-up sessions (nothing is saved or sent).
+  const ENDPOINT = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
+
+  // your first name (empty = no name shown). photo: put e.g. me.jpg into
+  // this repo and write photo: 'me.jpg' — until then the 🧗 shows.
+  const HOST = { name: '', photo: '' };
+
+  // gyms for "another gym?" and your "I'm at the gym" switch.
+  // address = used for the map link and the calendar location.
+  const GYMS = [
+    { location: 'Düsseldorf', gyms: [
+      { name: 'Superblock',            address: 'Fichtenstraße 53, 40233 Düsseldorf' },
+      { name: 'Einstein Düsseldorf',   address: 'Lierenfelder Str. 49, 40231 Düsseldorf' },
+      { name: 'Monkeyspot Düsseldorf', address: 'Schiessstraße 52, 40549 Düsseldorf' }
+    ]},
+    { location: 'Duisburg', gyms: [
+      { name: 'Monkeyspot Duisburg',   address: 'Neuenhofstraße 91, 47055 Duisburg' },
+      { name: 'Stuntwerk Duisburg',    address: 'Neudorfer Str. 109-113, 47057 Duisburg' },
+      { name: 'Einstein Duisburg',     address: 'Essenberger Straße 85, 47059 Duisburg' }
+    ]},
+    { location: 'Wuppertal', gyms: [
+      { name: 'Prisma',                address: 'Vohwinkeler Straße 119, 42329 Wuppertal' }
+    ]},
+    { location: 'Köln', gyms: [
+      { name: 'Boulderplanet',         address: 'Oskar-Jäger-Straße 143h, 50825 Köln' }
+    ]},
+    { location: 'Dortmund', gyms: [
+      { name: 'Boulderwelt Dortmund',  address: 'Brennaborstraße 10, 44149 Dortmund' },
+      { name: 'Kletterhalle Bergwerk', address: 'Emscherallee 33, 44369 Dortmund' }
+    ]}
+  ];
+
+  // the "when" chips in "Another gym or day?"
+  const WHEN_OPTIONS = ['Weekday evening', 'Weekend morning', 'Weekend afternoon', 'Whenever'];
+
+  /* ═══════════════════════════════════════════════════════════════ */
+
+  const $ = id => document.getElementById(id);
+  const DEMO = !ENDPOINT.startsWith('https://');
+  const params = new URLSearchParams(location.search);
+  const ADMIN_KEY = params.get('admin') || '';
+  const store = {
+    get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } },
+    set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+  let myJoins = store.get('cwm-joins', {});           // sessionId → token
+  let me = store.get('cwm-me', { name: '', email: '' });
+  let feedData = null;
+
+  const allGyms = GYMS.flatMap(g => g.gyms);
+  const findGym = name => allGyms.find(g => g.name === name);
+  const mapsUrl = q => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+
+  /* ---------- top ---------- */
+  if (HOST.name) {
+    $('helloLine').textContent = `Hey, I'm ${HOST.name}. Nice to meet you on the wall`;
+    $('avatar').textContent = HOST.name[0].toUpperCase();
+  }
+  if (HOST.photo) {
+    const img = new Image();
+    img.alt = '';
+    img.onload = () => { $('avatar').textContent = ''; $('avatar').appendChild(img); };
+    img.src = HOST.photo;
+  }
+
+  /* ---------- talking to Code.gs (or demo data) ---------- */
+  async function getFeed() {
+    if (DEMO) return demoFeed();
+    const r = await fetch(ENDPOINT + '?action=feed', { cache: 'no-store' });
+    return r.json();
+  }
+  async function post(data) {
+    if (DEMO) { await new Promise(r => setTimeout(r, 600)); return { ok: true, token: 'demo-' + Date.now() }; }
+    // text/plain keeps the request "simple", so no CORS preflight to Apps Script
+    const r = await fetch(ENDPOINT, { method: 'POST', body: JSON.stringify(data) });
+    return r.json();
+  }
+  function demoFeed() {
+    const day = (d, h, m) => { const x = new Date(); x.setDate(x.getDate() + d); x.setHours(h, m || 0, 0, 0); return x.getTime(); };
+    const nextDow = (dow) => (dow - new Date().getDay() + 7) % 7 || 7;
+    const sb = 'Superblock, Fichtenstraße 53, 40233 Düsseldorf';
+    return {
+      now: { gym: 'Superblock', location: sb, until: Date.now() + 100 * 60000 },
+      sessions: [
+        { id: 'd1', start: day(nextDow(1), 19), end: day(nextDow(1), 21, 30), gym: 'Superblock', location: sb, label: 'Monday crew', going: ['Tom', 'Lisa', 'Jan'] },
+        { id: 'd2', start: day(nextDow(3), 19, 30), end: day(nextDow(3), 22), gym: 'Superblock', location: sb, label: 'Wednesday crew', going: ['Mo', 'Sara'] },
+        { id: 'd3', start: day(nextDow(6), 11), end: day(nextDow(6), 13, 30), gym: 'Einstein Düsseldorf', location: 'Einstein Düsseldorf, Lierenfelder Str. 49, 40231 Düsseldorf', label: 'Open session', going: [] }
+      ]
+    };
+  }
+
+  /* ---------- formatting ---------- */
+  const fmtTime = t => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+  function dayParts(t) {
+    const d = new Date(t), today = Date.now();
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    const wd = sameDay(t, today) ? 'Today' : sameDay(t, tomorrow) ? 'Tmrw' : d.toLocaleDateString('en-GB', { weekday: 'short' });
+    return { num: d.getDate(), wd, month: d.toLocaleDateString('en-GB', { month: 'long' }) };
+  }
+  function goingText(names, mine) {
+    const list = names.slice();
+    if (!list.length) return mine ? 'You and me so far' : 'Just me so far';
+    if (list.length <= 3) return list.join(', ') + ' coming';
+    return list.slice(0, 3).join(', ') + ` and ${list.length - 3} more coming`;
+  }
+
+  /* ---------- live banner ---------- */
+  function renderLive(now) {
+    const el = $('live');
+    if (!now) { el.classList.remove('on'); return; }
+    $('liveGym').textContent = 'At ' + now.gym;
+    const until = $('liveUntil');
+    until.textContent = `until about ${fmtTime(now.until)}, come by. `;
+    const a = document.createElement('a');
+    a.href = mapsUrl(now.location || now.gym);
+    a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = 'Directions';
+    until.appendChild(a);
+    el.classList.add('on');
+  }
+
+  /* ---------- sessions ---------- */
+  function renderSessions(list) {
+    const box = $('sessions');
+    box.innerHTML = '';
+    if (!list.length) {
+      box.innerHTML = '<div class="empty-state">Nothing planned for the next weeks yet. Suggest a gym and a day below and I\'ll set one up.</div>';
+      return;
+    }
+    list.forEach(s => box.appendChild(sessionCard(s)));
+  }
+
+  function sessionCard(s) {
+    const mine = !!myJoins[s.id];
+    const d = dayParts(s.start);
+    const card = document.createElement('article');
+    card.className = 'session' + (sameDay(s.start, Date.now()) ? ' today' : '') + (mine ? ' mine' : '');
+    card.innerHTML = `
+      <div class="day" aria-hidden="true"><b></b><span></span></div>
+      <div>
+        <div class="time"></div>
+        <div class="gym"><a target="_blank" rel="noopener"></a></div>
+        <div class="label"></div>
+        <div class="going"></div>
+        <div class="row-actions"></div>
+      </div>
+      <form class="join-form" novalidate>
+        <div class="fields">
+          <input type="text" name="name" maxlength="40" placeholder="First name" autocomplete="given-name" aria-label="First name">
+          <input type="email" name="email" maxlength="200" placeholder="Email for the invite" autocomplete="email" aria-label="Email">
+        </div>
+        <label class="consent"><input type="checkbox" name="ok">Send me a calendar invite for this session. My email is only used for that.</label>
+        <div class="err"></div>
+        <div><button class="btn" type="submit">I'm in</button></div>
+      </form>`;
+    card.querySelector('.day b').textContent = d.num;
+    card.querySelector('.day span').textContent = d.wd;
+    card.querySelector('.time').textContent = `${fmtTime(s.start)}–${fmtTime(s.end)}`;
+    card.setAttribute('aria-label', `${d.wd} ${d.num} ${d.month}, ${fmtTime(s.start)} at ${s.gym}`);
+    const gymLink = card.querySelector('.gym a');
+    gymLink.textContent = s.gym;
+    gymLink.href = mapsUrl(s.location || s.gym);
+    const label = card.querySelector('.label');
+    if (s.label) label.textContent = s.label; else label.remove();
+
+    const going = card.querySelector('.going');
+    going.textContent = goingText(s.going || [], mine);
+    if (!(s.going || []).length) going.classList.add('empty');
+
+    const actions = card.querySelector('.row-actions');
+    const form = card.querySelector('.join-form');
+    if (mine) {
+      actions.innerHTML = '<span class="you-going">You\'re going</span><button class="link-btn" type="button">Can\'t make it</button>';
+      actions.querySelector('button').addEventListener('click', () => leaveSession(s, card));
+    } else {
+      const join = document.createElement('button');
+      join.className = 'btn';
+      join.type = 'button';
+      join.textContent = 'Join';
+      join.addEventListener('click', () => {
+        const open = form.classList.toggle('open');
+        join.textContent = open ? 'Close' : 'Join';
+        if (open) {
+          form.name.value = me.name; form.email.value = me.email;
+          (me.name ? form.querySelector('[type=submit]') : form.name).focus();
+        }
+      });
+      actions.appendChild(join);
+    }
+
+    form.addEventListener('submit', e => { e.preventDefault(); joinSession(s, form); });
+    Ink.attach(form.querySelector('[type=submit]'), 'drip');
+    return card;
+  }
+
+  async function joinSession(s, form) {
+    const err = form.querySelector('.err');
+    const name = form.name.value.trim(), email = form.email.value.trim();
+    if (!name) { err.textContent = 'Add your first name.'; return form.name.focus(); }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'That email doesn\'t look right.'; return form.email.focus(); }
+    if (!form.ok.checked) { err.textContent = 'Tick the box so I can send you the invite.'; return; }
+    err.textContent = '';
+    const btn = form.querySelector('[type=submit]');
+    btn.disabled = true;
+    const minWait = new Promise(r => setTimeout(r, Ink.wait(btn)));   // let the paint rise first
+    const res = await post({ action: 'join', sessionId: s.id, name, email }).catch(() => null);
+    await minWait;
+    btn.disabled = false;
+    if (!res || !res.ok) {
+      err.textContent = res && res.error === 'session_gone'
+        ? 'That session was just cancelled. Have a look at the others.'
+        : 'That didn\'t go through. Try again in a moment.';
+      return;
+    }
+    me = { name, email }; store.set('cwm-me', me);
+    if (!$('askName').value) $('askName').value = name;        // reuse for the other forms
+    if (!$('askEmail').value) $('askEmail').value = email;
+    if ($('notifyEmail') && !$('notifyEmail').value) $('notifyEmail').value = email;
+    myJoins[s.id] = res.token; store.set('cwm-joins', myJoins);
+    if (!res.already) s.going = (s.going || []).concat(name.split(' ')[0]);
+    const card = form.closest('.session');
+    const fresh = sessionCard(s);
+    card.replaceWith(fresh);
+    const note = document.createElement('p');
+    note.className = 'ok-note';
+    note.textContent = DEMO ? 'Demo mode: nothing was sent.' : 'Invite sent. Check your inbox.';
+    fresh.querySelector('.row-actions').after(note);
+  }
+
+  async function leaveSession(s, card) {
+    const res = await post({ action: 'leave', token: myJoins[s.id] }).catch(() => null);
+    if (!res) return;
+    const first = me.name.split(' ')[0];
+    const i = (s.going || []).indexOf(first);
+    if (i >= 0) s.going.splice(i, 1);
+    delete myJoins[s.id]; store.set('cwm-joins', myJoins);
+    card.replaceWith(sessionCard(s));
+  }
+
+  /* ---------- gym selects + chips ---------- */
+  function fillGymSelect(sel, withPlaceholder) {
+    if (withPlaceholder) sel.add(new Option('Pick a gym', '', true, true));
+    if (withPlaceholder) sel.options[0].disabled = true;
+    GYMS.forEach(g => {
+      const og = document.createElement('optgroup');
+      og.label = g.location;
+      g.gyms.forEach(x => og.appendChild(new Option(x.name, x.name)));
+      sel.appendChild(og);
+    });
+    const other = document.createElement('optgroup');
+    other.label = 'Somewhere else';
+    other.appendChild(new Option('Another gym (tell me in the note)', 'Another gym'));
+    sel.appendChild(other);
+  }
+  function chips(box, options, initial) {
+    let value = initial;
+    options.forEach(o => {
+      const c = document.createElement('button');
+      c.type = 'button'; c.className = 'chip'; c.textContent = o.label || o;
+      c.setAttribute('aria-pressed', String((o.value ?? o) === value));
+      c.addEventListener('click', () => {
+        value = o.value ?? o;
+        box.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', String(x === c)));
+      });
+      box.appendChild(c);
+    });
+    return () => value;
+  }
+
+  /* ---------- ask for another gym / day ---------- */
+  fillGymSelect($('askGym'), true);
+  const askWhen = chips($('askWhen'), WHEN_OPTIONS, null);
+  $('askName').value = me.name; $('askEmail').value = me.email;
+  $('askBtn').addEventListener('click', async () => {
+    const err = $('askErr'), gym = $('askGym').value, name = $('askName').value.trim(), email = $('askEmail').value.trim();
+    if (!gym) { err.textContent = 'Pick a gym first.'; return $('askGym').focus(); }
+    if (!name) { err.textContent = 'Add your first name.'; return $('askName').focus(); }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'I need an email to answer you.'; return $('askEmail').focus(); }
+    err.textContent = '';
+    const btn = $('askBtn'); btn.disabled = true;
+    const minWait = new Promise(r => setTimeout(r, Ink.wait(btn)));
+    const res = await post({ action: 'request', gym, when: askWhen() || '', note: $('askNote').value.trim(), name, email }).catch(() => null);
+    await minWait;
+    btn.disabled = false;
+    if (!res || !res.ok) { err.textContent = 'That didn\'t go through. Try again in a moment.'; return; }
+    me = { name, email }; store.set('cwm-me', me);
+    const panel = btn.closest('.panel');
+    panel.querySelector('.stack').innerHTML = `<p class="ok-note">${DEMO ? 'Demo mode: nothing was sent.' : 'Sent. I\'ll answer by email.'}</p>`;
+  });
+  Ink.attach($('askBtn'), 'drip');
+
+  /* ---------- notify me ---------- */
+  $('notifyEmail').value = me.email;
+  $('notifyBtn').addEventListener('click', async () => {
+    const err = $('notifyErr'), email = $('notifyEmail').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'That email doesn\'t look right.'; return $('notifyEmail').focus(); }
+    err.textContent = '';
+    const btn = $('notifyBtn'); btn.disabled = true;
+    const minWait = new Promise(r => setTimeout(r, Ink.wait(btn)));
+    const res = await post({ action: 'subscribe', email, name: me.name }).catch(() => null);
+    await minWait;
+    btn.disabled = false;
+    if (!res || !res.ok) { err.textContent = 'That didn\'t go through. Try again in a moment.'; return; }
+    btn.closest('.inline').outerHTML = `<p class="ok-note">${DEMO ? 'Demo mode: nothing was sent.' : (res.already ? 'You\'re already on the list.' : 'Check your inbox and tap the confirm link.')}</p>`;
+  });
+  Ink.attach($('notifyBtn'), 'drip');
+
+  /* ---------- host switch (?admin=YOUR-KEY) ---------- */
+  if (ADMIN_KEY) {
+    $('host').classList.add('on');
+    fillGymSelect($('hostGym'), false);
+    const hours = chips($('hostHours'), [{ label: '1 hour', value: 1 }, { label: '2 hours', value: 2 }, { label: '3 hours', value: 3 }], 2);
+    const hostPost = async (data, okText) => {
+      const res = await post(Object.assign({ key: ADMIN_KEY }, data)).catch(() => null);
+      $('hostErr').textContent = !res ? 'No connection.' : res.ok ? okText : res.error === 'forbidden' ? 'Wrong admin key in the link.' : 'Didn\'t work, try again.';
+      if (res && res.ok) refresh();
+    };
+    $('hostIn').addEventListener('click', () => {
+      const g = findGym($('hostGym').value) || { name: $('hostGym').value };
+      hostPost({ action: 'checkin', gym: g.name, location: g.address ? g.name + ', ' + g.address : g.name, hours: hours() }, 'You\'re live.');
+    });
+    $('hostOut').addEventListener('click', () => hostPost({ action: 'checkout' }, 'Banner is off.'));
+  }
+
+  /* ---------- load + keep fresh ---------- */
+  async function refresh() {
+    try {
+      feedData = await getFeed();
+      if (feedData.error) throw new Error(feedData.error);
+      renderLive(feedData.now);
+      // don't wipe a half-filled join form on the background refresh
+      if (!document.querySelector('.join-form.open')) renderSessions(feedData.sessions || []);
+    } catch (e) {
+      $('sessions').innerHTML = '<div class="empty-state">The sessions couldn\'t load right now. Pull to refresh, or try again in a minute.</div>';
+    }
+  }
+  refresh();
+  setInterval(refresh, 60000);
+  if (DEMO) $('footer').textContent += ' (Demo mode: the sessions shown are examples.)';
+})();
+</script>
+</body>
+</html>
