@@ -76,17 +76,57 @@
   .live span.until { display: block; margin-top: 6px; font-size: 15px; font-weight: 600; }
   .live a { color: var(--char); font-weight: 700; }
 
-  /* ---- rest-day card (shown when I'm not at a gym) ---- */
+  /* ---- pager under the sessions ---- */
+  .pager { display: none; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .pager.on { display: flex; }
+  .pg-btn { padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 700; color: var(--cream);
+    box-shadow: inset 0 0 0 1.5px var(--line); }
+  .pg-btn:hover:not(:disabled) { box-shadow: inset 0 0 0 1.5px var(--yellow); }
+  .pg-btn:disabled { opacity: 0.3; cursor: default; }
+  .pg-count { font-size: 13px; font-weight: 700; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+  /* ---- rest-day card (shown when I'm not at a gym) ----
+     one flat row: charging battery on the left, the words on the right */
   .rest {
-    display: none; margin-top: 14px; padding: 18px 20px; border-radius: 18px;
-    background: transparent; box-shadow: inset 0 0 0 1.5px var(--line);
+    display: none; margin-top: 16px; padding: 16px 18px 16px 16px; border-radius: 16px;
+    background: var(--char-2);
+    grid-template-columns: auto 1fr; gap: 18px; align-items: center;
   }
-  .rest.on { display: block; }
-  .rest-dot { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
-  .rest-dot i { width: 10px; height: 10px; border-radius: 50%; background: #ff5a4e; animation: doze 3.2s ease-in-out infinite; }
+  .rest.on { display: grid; }
+  .rest-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 5px;
+    font-size: 12px; font-weight: 700; color: var(--dim); }
+  .rest-dot { display: inline-flex; align-items: center; gap: 7px; }
+  .rest-dot i { width: 8px; height: 8px; border-radius: 50%; background: #ff5a4e; animation: doze 3.2s ease-in-out infinite; }
   @keyframes doze { 50% { opacity: 0.35; } }
-  .rest strong { display: block; font-size: 19px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.3; }
-  .rest span { display: block; margin-top: 6px; font-size: 14px; color: var(--muted); }
+  .rest-meta .pct { padding-left: 10px; border-left: 1px solid var(--line); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rest strong { display: block; font-size: 17px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.3; }
+  .rest-next { display: block; margin-top: 4px; font-size: 13px; color: var(--dim); }
+
+  /* the charging battery: fills up once it's on screen, then a shimmer keeps running */
+  .battery {
+    position: relative; width: 58px; height: 28px; padding: 3px;
+    border: 2px solid rgba(255, 248, 230, 0.75); border-radius: 8px;
+  }
+  .battery::after { content: ''; position: absolute; right: -6px; top: 8px; width: 3px; height: 8px; border-radius: 0 3px 3px 0; background: rgba(255, 248, 230, 0.75); }
+  .battery .lvl {
+    --c: #ff5a4e;
+    height: 100%; width: 0; border-radius: 4px; background: var(--c); position: relative; overflow: hidden;
+    transition: width 1.6s cubic-bezier(.2, .8, .2, 1), background 0.6s ease;
+  }
+  .battery .lvl::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: translateX(-100%); animation: shimmer 1.8s ease-in-out infinite;
+  }
+  @keyframes shimmer { to { transform: translateX(100%); } }
+  .battery .lvl.loop { animation: chargeLoop 3.2s ease-in-out infinite; }
+  @keyframes chargeLoop { 0% { width: 8%; } 85%, 100% { width: 100%; } }
+  .battery .bolt {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; line-height: 1; animation: boltPulse 1.8s ease-in-out infinite;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+  }
+  @keyframes boltPulse { 50% { transform: scale(1.18); } }
 
   /* ---- section headings ---- */
   h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 14px; }
@@ -154,6 +194,7 @@
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { padding: 9px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--line); }
   .chip[aria-pressed="true"] { background: var(--yellow); color: var(--char); box-shadow: none; }
+  .chip:disabled { opacity: 0.4; cursor: default; text-decoration: line-through; text-decoration-thickness: 1.5px; }
   .date-row { display: grid; gap: 12px; }
 
   /* month calendar — same look as the booking pass on the invite pages */
@@ -180,15 +221,18 @@
   .cal-day:disabled { color: rgba(28, 27, 25, 0.28); cursor: default; }
   .cal-day.today { box-shadow: inset 0 0 0 2px rgba(28, 27, 25, 0.45); }
   .cal-day.sel { background: var(--char); color: var(--yellow); }
+  .cal-day.full { text-decoration: line-through; text-decoration-thickness: 1.5px; }
   .cal-day.has::after { content: ''; position: absolute; bottom: 5px; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
   .cal-hint { margin: 10px 4px 0; font-size: 12px; font-weight: 600; color: rgba(28, 27, 25, 0.7); }
   .inline { display: flex; gap: 10px; }
   .inline input { flex: 1; min-width: 0; }
 
   /* ---- host panel (?admin=…) ---- */
-  .host { display: none; margin-top: 40px; border-radius: 20px; padding: 20px; background: var(--char-3); }
+  .host { display: none; margin: 0 0 30px; border-radius: 20px; padding: 18px 20px 20px;
+    background: var(--char-2); box-shadow: inset 0 0 0 2px var(--yellow); }
   .host.on { display: block; }
-  .host h2 { font-size: 18px; }
+  .host h2 { font-size: 18px; margin-bottom: 4px; }
+  .host .only-you { margin: 0 0 14px; font-size: 12px; font-weight: 700; color: var(--yellow); }
 
   footer { margin-top: 48px; color: var(--dim); font-size: 12px; line-height: 1.6; }
 
@@ -226,12 +270,20 @@
   <section class="section" aria-labelledby="sessionsTitle">
     <h2 id="sessionsTitle">Next sessions</h2>
     <div class="sessions" id="sessions"><p class="loading">Loading sessions…</p></div>
+    <nav class="pager" id="pager" aria-label="More sessions">
+      <button type="button" class="pg-btn" id="pgPrev">‹ Earlier</button>
+      <span class="pg-count" id="pgCount" aria-live="polite"></span>
+      <button type="button" class="pg-btn" id="pgNext">Later ›</button>
+    </nav>
 
     <!-- when I'm NOT at a gym: a calm rest-day card with a pun -->
     <div class="rest" id="rest" aria-live="polite">
-      <div class="rest-dot"><i></i>off the wall</div>
-      <strong id="restPun"></strong>
-      <span id="restNext"></span>
+      <div class="battery" aria-hidden="true"><div class="lvl" id="batteryLvl"></div><b class="bolt">⚡</b></div>
+      <div class="rest-text">
+        <div class="rest-meta"><span class="rest-dot"><i></i>off the wall</span><span class="pct" id="chargeText"></span></div>
+        <strong id="restPun"></strong>
+        <span class="rest-next" id="restNext"></span>
+      </div>
     </div>
   </section>
 
@@ -270,6 +322,7 @@
 
   <section class="host" id="host" aria-labelledby="hostTitle">
     <h2 id="hostTitle">I'm at the gym</h2>
+    <p class="only-you">Only you see this (it's the ?admin link)</p>
     <div class="stack">
       <select id="hostGym" aria-label="Gym"></select>
       <div class="chips" id="hostHours" role="group" aria-label="For how long"></div>
@@ -522,7 +575,7 @@ const Ink = (() => {
 
   // the /exec URL of this repo's Code.gs. Until it's set, the page runs
   // in demo mode with made-up sessions (nothing is saved or sent).
-  const ENDPOINT = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzM410lQS5_zh_ohAF7ofti58HHbO-Sox8nEZSz3--b45dipppr8GpdeqJPYnA1wJQY/exec';
 
   // your first name (empty = no name shown). photo: put e.g. me.jpg into
   // this repo and write photo: 'me.jpg' — until then the 🧗 shows.
@@ -555,14 +608,15 @@ const Ink = (() => {
 
   // the time-of-day chips next to the date picker in "Pitch me a session"
   const WHEN_OPTIONS = ['Morning', 'Afternoon', 'Evening'];
+  const SESSIONS_PER_PAGE = 3;   // ✏️ how many sessions show at once
   const PITCH_DAYS_AHEAD = 60;   // how far ahead people can pick a day
 
   // ✏️ ALL THE WORDING in one place. {gym}, {time}, {names}, {n} get filled in.
   const TEXT = {
-    title:      'Climb with me',                       // ← pick your new title here
+    title:      'Where my skin goes to die',
     intro:      'I\'m at the wall most days anyway. Bring shoes, skin and questionable beta.',
-    liveTitle:  'At {gym}',                             // ← pick your banner line here
-    liveUntil:  'until about {time}, come by. ',        //    (the "Directions" link follows)
+    liveTitle:  'Live at {gym}',
+    liveUntil:  'Doing weird things till ~{time}. ',    // (the "Directions" link follows)
     goingNone:  'Solo session so far. Ruin that.',
     goingMeOnly:'You and me so far',
     goingFew:   '{names} are in',                       // 1–3 people
@@ -589,7 +643,12 @@ const Ink = (() => {
     ],
     restNext:   'Back on the wall {when} at {gym}.',
     restNone:   'Next session not planned yet. Pitch me one below.',
-    calHint:    'Dots mark days I\'m already climbing.'
+    calHint:    'Dots: I\'m already climbing. Faded: my calendar says no.',
+    joinBtn:    'I\'m in',
+    sendInvite: 'Send me the invite',
+    charging:   'recharging {pct}%',
+    chargingNone: 'recharging forever',
+    partBusy:   'busy'
   };
   const fill = (t, v) => t.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
 
@@ -648,7 +707,15 @@ const Ink = (() => {
         { id: 'd1', start: day(nextDow(1), 19), end: day(nextDow(1), 21, 30), gym: 'Superblock', location: sb, label: 'Monday crew', going: ['Tom', 'Lisa', 'Jan'] },
         { id: 'd2', start: day(nextDow(3), 19, 30), end: day(nextDow(3), 22), gym: 'Superblock', location: sb, label: 'Wednesday crew', going: ['Mo', 'Sara'] },
         { id: 'd3', start: day(nextDow(6), 11), end: day(nextDow(6), 13, 30), gym: 'Einstein Düsseldorf', location: 'Einstein Düsseldorf, Lierenfelder Str. 49, 40231 Düsseldorf', label: 'Open session', going: [] }
-      ]
+      ],
+      availability: (() => {        // fake free/busy: some busy evenings, one fully booked day
+        const out = {}, k = d => { const x = new Date(); x.setDate(x.getDate() + d);
+          return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+        [2, 9, 16].forEach(d => out[k(d)] = 'e');
+        [3, 4].forEach(d => out[k(d)] = 'ma');
+        out[k(11)] = 'mae'; out[k(12)] = 'mae';
+        return out;
+      })()
     };
   }
 
@@ -698,12 +765,43 @@ const Ink = (() => {
           gym: next.gym })
       : TEXT.restNone;
     el.classList.add('on');
+
+    // battery: the closer the next session, the fuller (72 h of rest = empty)
+    const lvl = $('batteryLvl');
+    if (next) {
+      const charge = Math.min(0.98, Math.max(0.08, 1 - (next.start - Date.now()) / (72 * 3600000)));
+      const pct = Math.round(charge * 100);
+      lvl.classList.remove('loop');
+      lvl.style.setProperty('--c', charge < 0.34 ? '#ff5a4e' : charge < 0.67 ? '#fcba01' : '#1fae5b');
+      // charge up visibly — but only once the card is actually on screen
+      const fillUp = () => { lvl.style.width = pct + '%'; };
+      if (lvl.dataset.charged) fillUp();
+      else if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver(entries => {
+          if (entries.some(e => e.isIntersecting)) { io.disconnect(); lvl.dataset.charged = '1'; setTimeout(fillUp, 250); }
+        }, { threshold: 0.6 });
+        io.observe($('rest'));
+      } else { lvl.dataset.charged = '1'; requestAnimationFrame(() => requestAnimationFrame(fillUp)); }
+      $('chargeText').textContent = fill(TEXT.charging, { pct });
+    } else {
+      lvl.style.width = '';
+      lvl.classList.add('loop');
+      $('chargeText').textContent = TEXT.chargingNone;
+    }
   }
 
   /* ---------- sessions ---------- */
+  let page = 0;
   function renderSessions(list) {
     const box = $('sessions');
     box.innerHTML = '';
+    const pages = Math.max(1, Math.ceil(list.length / SESSIONS_PER_PAGE));
+    page = Math.min(page, pages - 1);           // e.g. after sessions passed
+    $('pager').classList.toggle('on', pages > 1);
+    $('pgCount').textContent = `${page + 1} / ${pages}`;
+    $('pgPrev').disabled = page === 0;
+    $('pgNext').disabled = page >= pages - 1;
+    list = list.slice(page * SESSIONS_PER_PAGE, (page + 1) * SESSIONS_PER_PAGE);
     if (!list.length) {
       const e = document.createElement('div');
       e.className = 'empty-state';
@@ -735,7 +833,7 @@ const Ink = (() => {
         </div>
         <label class="consent"><input type="checkbox" name="ok">Send me a calendar invite for this session. My email is only used for that.</label>
         <div class="err"></div>
-        <div><button class="btn" type="submit">I'm in</button></div>
+        <div><button class="btn" type="submit">Send me the invite</button></div>
       </form>`;
     card.querySelector('.day b').textContent = d.num;
     card.querySelector('.day span').textContent = d.wd;
@@ -762,10 +860,10 @@ const Ink = (() => {
       const join = document.createElement('button');
       join.className = 'btn';
       join.type = 'button';
-      join.textContent = 'Join';
+      join.textContent = TEXT.joinBtn;
       join.addEventListener('click', () => {
         const open = form.classList.toggle('open');
-        join.textContent = open ? 'Close' : 'Join';
+        join.textContent = open ? 'Close' : TEXT.joinBtn;
         if (open) {
           form.name.value = me.name; form.email.value = me.email;
           (me.name ? form.querySelector('[type=submit]') : form.name).focus();
@@ -823,6 +921,16 @@ const Ink = (() => {
     card.replaceWith(sessionCard(s));
   }
 
+  function turnPage(delta) {
+    page += delta;
+    renderSessions((feedData && feedData.sessions) || []);
+    const top = $('sessionsTitle').getBoundingClientRect().top;
+    if (top < 0) $('sessionsTitle').scrollIntoView({
+      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+  $('pgPrev').addEventListener('click', () => turnPage(-1));
+  $('pgNext').addEventListener('click', () => turnPage(1));
+
   /* ---------- gym selects + chips ---------- */
   function fillGymSelect(sel, withPlaceholder) {
     if (withPlaceholder) sel.add(new Option('Pick a gym', '', true, true));
@@ -840,22 +948,33 @@ const Ink = (() => {
   }
   function chips(box, options, initial) {
     let value = initial;
-    options.forEach(o => {
+    const els = options.map(o => {
       const c = document.createElement('button');
       c.type = 'button'; c.className = 'chip'; c.textContent = o.label || o;
+      c.dataset.label = o.label || o;
       c.setAttribute('aria-pressed', String((o.value ?? o) === value));
       c.addEventListener('click', () => {
         value = o.value ?? o;
         box.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', String(x === c)));
       });
       box.appendChild(c);
+      return c;
     });
-    return () => value;
+    const get = () => value;
+    // disable some options (e.g. busy parts of a day); clears a selection that became busy
+    get.disable = indexes => els.forEach((c, i) => {
+      const off = indexes.includes(i);
+      c.disabled = off;
+      c.textContent = off ? `${c.dataset.label} (${TEXT.partBusy})` : c.dataset.label;
+      if (off && c.getAttribute('aria-pressed') === 'true') { c.setAttribute('aria-pressed', 'false'); value = null; }
+    });
+    return get;
   }
 
   /* ---------- ask for another gym / day ---------- */
   fillGymSelect($('askGym'), true);
   const askWhen = chips($('askWhen'), WHEN_OPTIONS, null);
+  const PART_LETTERS = ['m', 'a', 'e'];   // Morning / Afternoon / Evening, same order as WHEN_OPTIONS
   /* Month calendar (same look as the booking pass on the invite pages).
      Tap a day to pick it, tap it again to stay flexible. */
   const cal = (function (box) {
@@ -863,8 +982,9 @@ const Ink = (() => {
     const today = startOfDay(new Date());
     const last = startOfDay(new Date()); last.setDate(last.getDate() + PITCH_DAYS_AHEAD);
     let view = new Date(today.getFullYear(), today.getMonth(), 1);
-    let selected = null, busy = new Set();
+    let selected = null, busy = new Set(), avail = {}, onPick = () => {};
     const key = d => d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+    const isoKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     function draw() {
       box.innerHTML = '';
@@ -894,12 +1014,14 @@ const Ink = (() => {
         b.type = 'button';
         b.className = 'cal-day';
         b.textContent = d;
-        b.disabled = date < today || date > last;
+        const fullyBusy = (avail[isoKey(date)] || '').length >= 3;   // my calendar says no all day
+        b.disabled = date < today || date > last || fullyBusy;
+        if (fullyBusy && !(date < today || date > last)) b.classList.add('full');
         if (+date === +today) b.classList.add('today');
         if (busy.has(key(date))) b.classList.add('has');
         if (selected && +date === +selected) { b.classList.add('sel'); b.setAttribute('aria-pressed', 'true'); }
         b.setAttribute('aria-label', date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }));
-        b.onclick = () => { selected = selected && +selected === +date ? null : date; draw(); };
+        b.onclick = () => { selected = selected && +selected === +date ? null : date; draw(); onPick(selected ? (avail[isoKey(selected)] || '') : ''); };
         grid.appendChild(b);
       }
       const hint = document.createElement('p');
@@ -910,10 +1032,13 @@ const Ink = (() => {
     draw();
     return {
       value: () => selected,
-      mark: list => { busy = new Set(list.map(x => key(new Date(x.start)))); draw(); }
+      mark: list => { busy = new Set(list.map(x => key(new Date(x.start)))); draw(); },
+      availability: map => { avail = map || {}; draw(); onPick(selected ? (avail[isoKey(selected)] || '') : ''); },
+      onPick: fn => { onPick = fn; }
     };
   })($('askCal'));
 
+  cal.onPick(busyLetters => askWhen.disable(PART_LETTERS.map((l, i) => busyLetters.includes(l) ? i : -1).filter(i => i >= 0)));
   $('askName').value = me.name; $('askEmail').value = me.email;
   $('askBtn').addEventListener('click', async () => {
     const err = $('askErr'), gym = $('askGym').value, name = $('askName').value.trim(), email = $('askEmail').value.trim();
@@ -960,6 +1085,7 @@ const Ink = (() => {
 
   /* ---------- host switch (?admin=YOUR-KEY) ---------- */
   if (ADMIN_KEY) {
+    document.querySelector('main.wrap').prepend($('host'));   // admin controls go first
     $('host').classList.add('on');
     fillGymSelect($('hostGym'), false);
     const hours = chips($('hostHours'), [{ label: '1 hour', value: 1 }, { label: '2 hours', value: 2 }, { label: '3 hours', value: 3 }], 2);
@@ -982,6 +1108,7 @@ const Ink = (() => {
       if (feedData.error) throw new Error(feedData.error);
       renderLive(feedData.now, feedData.sessions);
       cal.mark(feedData.sessions || []);
+      cal.availability(feedData.availability);
       // don't wipe a half-filled join form on the background refresh
       if (!document.querySelector('.join-form.open')) renderSessions(feedData.sessions || []);
     } catch (e) {
