@@ -66,15 +66,27 @@
   .live.on { display: block; animation: liveIn 0.6s var(--ease); }
   @keyframes liveIn { from { opacity: 0; transform: rotate(-1deg) translateY(10px) scale(0.98); } }
   .live .pulse { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
-  .live .pulse i { width: 10px; height: 10px; border-radius: 50%; background: var(--char); position: relative; }
+  .live .pulse i { width: 11px; height: 11px; border-radius: 50%; background: #1fae5b; position: relative; box-shadow: 0 0 0 2px var(--char); }
   .live .pulse i::after {
-    content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--char);
+    content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid #1fae5b;
     animation: ping 1.6s ease-out infinite;
   }
   @keyframes ping { from { opacity: 0.7; transform: scale(0.5); } to { opacity: 0; transform: scale(1.6); } }
   .live strong { display: block; font-size: clamp(24px, 6.5vw, 32px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; text-wrap: balance; }
   .live span.until { display: block; margin-top: 6px; font-size: 15px; font-weight: 600; }
   .live a { color: var(--char); font-weight: 700; }
+
+  /* ---- rest-day card (shown when I'm not at a gym) ---- */
+  .rest {
+    display: none; margin-top: 14px; padding: 18px 20px; border-radius: 18px;
+    background: transparent; box-shadow: inset 0 0 0 1.5px var(--line);
+  }
+  .rest.on { display: block; }
+  .rest-dot { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+  .rest-dot i { width: 10px; height: 10px; border-radius: 50%; background: #ff5a4e; animation: doze 3.2s ease-in-out infinite; }
+  @keyframes doze { 50% { opacity: 0.35; } }
+  .rest strong { display: block; font-size: 19px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.3; }
+  .rest span { display: block; margin-top: 6px; font-size: 14px; color: var(--muted); }
 
   /* ---- section headings ---- */
   h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 14px; }
@@ -142,11 +154,34 @@
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { padding: 9px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--line); }
   .chip[aria-pressed="true"] { background: var(--yellow); color: var(--char); box-shadow: none; }
-  .date-row { display: grid; gap: 10px; }
-  input[type=date] { width: 100%; background: var(--char); border: 0; box-shadow: inset 0 0 0 1.5px var(--line);
-    border-radius: 12px; padding: 12px 14px; font-size: 16px; color: var(--cream); outline: none; min-height: 48px; }
-  input[type=date]:focus { box-shadow: inset 0 0 0 2px var(--yellow); }
-  input[type=date]::-webkit-calendar-picker-indicator { filter: invert(78%) sepia(60%) saturate(900%) hue-rotate(358deg); cursor: pointer; }
+  .date-row { display: grid; gap: 12px; }
+
+  /* month calendar — same look as the booking pass on the invite pages */
+  .cal {
+    background: var(--yellow); color: var(--char); border-radius: 16px; padding: 16px 14px 14px;
+    -webkit-mask:
+      radial-gradient(circle 11px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 11px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle 11px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 11px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+  }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 10px;
+    border-bottom: 2px dashed rgba(28, 27, 25, 0.3); margin-bottom: 10px; }
+  .cal-head b { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+  .cal-nav { width: 34px; height: 34px; border-radius: 10px; font-size: 20px; font-weight: 800; color: var(--char);
+    background: rgba(255, 255, 255, 0.35); display: flex; align-items: center; justify-content: center; }
+  .cal-nav:disabled { opacity: 0.3; cursor: default; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .cal-grid .wd { font-size: 11px; font-weight: 700; color: rgba(28, 27, 25, 0.6); padding: 4px 0; }
+  .cal-day { position: relative; aspect-ratio: 1; max-height: 44px; border-radius: 50%; font-size: 15px; font-weight: 700;
+    color: var(--char); display: flex; align-items: center; justify-content: center; margin: 0 auto; width: 100%; max-width: 44px; }
+  .cal-day:hover:not(:disabled) { background: rgba(28, 27, 25, 0.1); }
+  .cal-day:disabled { color: rgba(28, 27, 25, 0.28); cursor: default; }
+  .cal-day.today { box-shadow: inset 0 0 0 2px rgba(28, 27, 25, 0.45); }
+  .cal-day.sel { background: var(--char); color: var(--yellow); }
+  .cal-day.has::after { content: ''; position: absolute; bottom: 5px; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .cal-hint { margin: 10px 4px 0; font-size: 12px; font-weight: 600; color: rgba(28, 27, 25, 0.7); }
   .inline { display: flex; gap: 10px; }
   .inline input { flex: 1; min-width: 0; }
 
@@ -174,13 +209,6 @@
 </head>
 <body>
 <main class="wrap">
-  <!-- live banner sits on top: when I'm at a gym, that's the news -->
-  <section class="live" id="live" aria-live="polite">
-    <div class="pulse"><i></i>right now</div>
-    <strong id="liveGym">At Superblock</strong>
-    <span class="until" id="liveUntil">until about 21:30, come by</span>
-  </section>
-
   <div class="hello">
     <div class="avatar" id="avatar" aria-hidden="true">🧗</div>
     <p id="helloLine">Hey, nice to meet you on the wall</p>
@@ -188,9 +216,23 @@
   <h1 id="title">Climb with me</h1>
   <p class="intro" id="intro"></p>
 
+  <!-- when I'm at a gym: the yellow "right now" banner -->
+  <section class="live" id="live" aria-live="polite">
+    <div class="pulse"><i></i>right now</div>
+    <strong id="liveGym">At Superblock</strong>
+    <span class="until" id="liveUntil">until about 21:30, come by</span>
+  </section>
+
   <section class="section" aria-labelledby="sessionsTitle">
     <h2 id="sessionsTitle">Next sessions</h2>
     <div class="sessions" id="sessions"><p class="loading">Loading sessions…</p></div>
+
+    <!-- when I'm NOT at a gym: a calm rest-day card with a pun -->
+    <div class="rest" id="rest" aria-live="polite">
+      <div class="rest-dot"><i></i>off the wall</div>
+      <strong id="restPun"></strong>
+      <span id="restNext"></span>
+    </div>
   </section>
 
   <section class="section" aria-labelledby="askTitle">
@@ -200,7 +242,7 @@
       <div class="stack">
         <select id="askGym" aria-label="Gym"></select>
         <div class="date-row">
-          <input type="date" id="askDate" aria-label="Day">
+          <div class="cal" id="askCal" role="group" aria-label="Pick a day"></div>
           <div class="chips" id="askWhen" role="group" aria-label="Time of day"></div>
         </div>
         <textarea id="askNote" maxlength="400" placeholder="Anything else? An exact time, your level, a friend coming along"></textarea>
@@ -480,7 +522,7 @@ const Ink = (() => {
 
   // the /exec URL of this repo's Code.gs. Until it's set, the page runs
   // in demo mode with made-up sessions (nothing is saved or sent).
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxbPmknv6WsO3pMI87H4B9iFuZIP19xc85nyc0oxgKs89thGazCSICsIiGbn7tHZBhUZg/exec';
+  const ENDPOINT = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
 
   // your first name (empty = no name shown). photo: put e.g. me.jpg into
   // this repo and write photo: 'me.jpg' — until then the 🧗 shows.
@@ -531,7 +573,23 @@ const Ink = (() => {
     emptyList:  'Nothing planned yet. My forearms are on vacation. Pitch me a day below.',
     pitchSent:  'Pitch received. Answer coming by email, probably with a gif.',
     confirmMail:'Check your inbox and confirm. Yes, one more click. GDPR says hi.',
-    alreadyOn:  'You\'re already on the list.'
+    alreadyOn:  'You\'re already on the list.',
+
+    // shown under the sessions when I'm not at a gym — one per day, rotating
+    restPuns: [
+      'My forearms filed a formal complaint.',
+      'Currently horizontal. Skin is regenerating.',
+      'Off the wall. Probably napping like a capybara.',
+      'Chalk dust settling, ego recovering.',
+      'Fingers in airplane mode.',
+      'Watching beta videos instead of climbing. Very productive.',
+      'Pretending recovery is a personality trait.',
+      'Not at the gym. My hyperfocus found a new hobby for today.',
+      'Grip strength: buffering.'
+    ],
+    restNext:   'Back on the wall {when} at {gym}.',
+    restNone:   'Next session not planned yet. Pitch me one below.',
+    calHint:    'Dots mark days I\'m already climbing.'
   };
   const fill = (t, v) => t.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
 
@@ -612,8 +670,9 @@ const Ink = (() => {
   }
 
   /* ---------- live banner ---------- */
-  function renderLive(now) {
+  function renderLive(now, list) {
     const el = $('live');
+    renderRest(now ? null : (list || []));
     if (!now) { el.classList.remove('on'); return; }
     $('liveGym').textContent = fill(TEXT.liveTitle, { gym: now.gym });
     const until = $('liveUntil');
@@ -623,6 +682,21 @@ const Ink = (() => {
     a.target = '_blank'; a.rel = 'noopener';
     a.textContent = 'Directions';
     until.appendChild(a);
+    el.classList.add('on');
+  }
+
+  // rest-day card: a pun that changes once a day, plus when I'm back on the wall
+  function renderRest(list) {
+    const el = $('rest');
+    if (!list) { el.classList.remove('on'); return; }
+    const dayNo = Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
+    $('restPun').textContent = TEXT.restPuns[dayNo % TEXT.restPuns.length];
+    const next = list.find(x => x.start > Date.now());
+    $('restNext').textContent = next
+      ? fill(TEXT.restNext, {
+          when: new Date(next.start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + fmtTime(next.start),
+          gym: next.gym })
+      : TEXT.restNone;
     el.classList.add('on');
   }
 
@@ -782,11 +856,64 @@ const Ink = (() => {
   /* ---------- ask for another gym / day ---------- */
   fillGymSelect($('askGym'), true);
   const askWhen = chips($('askWhen'), WHEN_OPTIONS, null);
-  // local date as YYYY-MM-DD (toISOString would use UTC and can be a day off at night)
-  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const maxD = new Date(); maxD.setDate(maxD.getDate() + PITCH_DAYS_AHEAD);
-  $('askDate').min = iso(new Date());
-  $('askDate').max = iso(maxD);
+  /* Month calendar (same look as the booking pass on the invite pages).
+     Tap a day to pick it, tap it again to stay flexible. */
+  const cal = (function (box) {
+    const startOfDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+    const today = startOfDay(new Date());
+    const last = startOfDay(new Date()); last.setDate(last.getDate() + PITCH_DAYS_AHEAD);
+    let view = new Date(today.getFullYear(), today.getMonth(), 1);
+    let selected = null, busy = new Set();
+    const key = d => d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+
+    function draw() {
+      box.innerHTML = '';
+      const head = document.createElement('div');
+      head.className = 'cal-head';
+      const prev = document.createElement('button'); prev.type = 'button'; prev.className = 'cal-nav'; prev.textContent = '‹'; prev.setAttribute('aria-label', 'Previous month');
+      const next = document.createElement('button'); next.type = 'button'; next.className = 'cal-nav'; next.textContent = '›'; next.setAttribute('aria-label', 'Next month');
+      const title = document.createElement('b');
+      title.textContent = view.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      prev.disabled = view <= new Date(today.getFullYear(), today.getMonth(), 1);
+      next.disabled = new Date(view.getFullYear(), view.getMonth() + 1, 1) > last;
+      prev.onclick = () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); draw(); };
+      next.onclick = () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); draw(); };
+      head.append(prev, title, next);
+
+      const grid = document.createElement('div');
+      grid.className = 'cal-grid';
+      ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach(w => {
+        const c = document.createElement('div'); c.className = 'wd'; c.textContent = w; grid.appendChild(c);
+      });
+      const lead = (view.getDay() + 6) % 7;   // Monday first
+      for (let i = 0; i < lead; i++) grid.appendChild(document.createElement('div'));
+      const days = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+      for (let d = 1; d <= days; d++) {
+        const date = new Date(view.getFullYear(), view.getMonth(), d);
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'cal-day';
+        b.textContent = d;
+        b.disabled = date < today || date > last;
+        if (+date === +today) b.classList.add('today');
+        if (busy.has(key(date))) b.classList.add('has');
+        if (selected && +date === +selected) { b.classList.add('sel'); b.setAttribute('aria-pressed', 'true'); }
+        b.setAttribute('aria-label', date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }));
+        b.onclick = () => { selected = selected && +selected === +date ? null : date; draw(); };
+        grid.appendChild(b);
+      }
+      const hint = document.createElement('p');
+      hint.className = 'cal-hint';
+      hint.textContent = TEXT.calHint;
+      box.append(head, grid, hint);
+    }
+    draw();
+    return {
+      value: () => selected,
+      mark: list => { busy = new Set(list.map(x => key(new Date(x.start)))); draw(); }
+    };
+  })($('askCal'));
+
   $('askName').value = me.name; $('askEmail').value = me.email;
   $('askBtn').addEventListener('click', async () => {
     const err = $('askErr'), gym = $('askGym').value, name = $('askName').value.trim(), email = $('askEmail').value.trim();
@@ -796,8 +923,8 @@ const Ink = (() => {
     err.textContent = '';
     const btn = $('askBtn'); btn.disabled = true;
     const minWait = new Promise(r => setTimeout(r, Ink.wait(btn)));
-    const dv = $('askDate').value;
-    const dayLabel = dv ? new Date(dv + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+    const dv = cal.value();
+    const dayLabel = dv ? dv.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
     const when = [dayLabel, (askWhen() || '').toLowerCase()].filter(Boolean).join(', ') || 'flexible';
     const res = await post({ action: 'request', gym, when, note: $('askNote').value.trim(), name, email }).catch(() => null);
     await minWait;
@@ -853,7 +980,8 @@ const Ink = (() => {
     try {
       feedData = await getFeed();
       if (feedData.error) throw new Error(feedData.error);
-      renderLive(feedData.now);
+      renderLive(feedData.now, feedData.sessions);
+      cal.mark(feedData.sessions || []);
       // don't wipe a half-filled join form on the background refresh
       if (!document.querySelector('.join-form.open')) renderSessions(feedData.sessions || []);
     } catch (e) {
