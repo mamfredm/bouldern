@@ -252,6 +252,46 @@
 
   footer { margin-top: 48px; color: var(--dim); font-size: 12px; line-height: 1.6; }
 
+  /* ═══ admin dashboard ═══ */
+  /* header row of the admin panel: toggle + always-visible dashboard button */
+  .host-header { display: flex; align-items: center; gap: 12px; }
+  .host-header .host-toggle { flex: 1; min-width: 0; }
+  .dash-pill {
+    flex: none; background: var(--yellow); color: var(--char); text-decoration: none;
+    font-size: 13px; font-weight: 800; padding: 8px 12px; border-radius: 10px; box-shadow: 0 3px 0 var(--yellow-deep);
+  }
+  .dash-pill:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--yellow-deep); }
+  .dash[hidden] { display: none; }
+  .dash-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .dash-back { font-size: 14px; font-weight: 700; color: var(--muted); text-decoration: none; }
+  .dash-title { font-size: clamp(36px, 10vw, 52px); margin-bottom: 6px; }
+  .dash-sub { margin: 0 0 22px; color: var(--muted); font-size: 14px; }
+  .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat { background: var(--char-2); border-radius: 14px; padding: 14px 16px; }
+  .stat b { display: block; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .dash-sec { margin-top: 36px; }
+  .dash-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .dash-sec-head h2 { margin: 0; }
+  .dcard { background: var(--char-2); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; }
+  .dcard-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .dcard-head b { font-size: 16px; font-weight: 800; }
+  .dcard-head span { font-size: 13px; color: var(--muted); }
+  .people { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+  .people li { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; flex-wrap: wrap; }
+  .people li a { color: var(--muted); text-decoration: none; font-size: 13px; overflow-wrap: anywhere; }
+  .people li.left { opacity: 0.45; text-decoration: line-through; }
+  .dcard .row-actions { margin-top: 10px; }
+  .muted-line { color: var(--dim); font-size: 13px; margin: 8px 0 0; }
+  .pitch-note { margin: 8px 0 0; font-size: 14px; color: var(--cream); line-height: 1.45; }
+  .badge { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--char-3); color: var(--muted); }
+  .badge.active { background: #1fae5b; color: var(--char); }
+  .badge.pending { background: var(--yellow); color: var(--char); }
+  .sub-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .sub-row a { color: var(--cream); text-decoration: none; overflow-wrap: anywhere; }
+  .sub-row small { color: var(--dim); font-size: 12px; white-space: nowrap; }
+  #subFilter { margin-bottom: 6px; }
+
   /* ---- ink (same engine as the invite pages) ---- */
   .ink { position: relative; overflow: hidden; isolation: isolate; }
   .ink-top {
@@ -336,10 +376,13 @@
   </section>
 
   <section class="host" id="host" aria-labelledby="hostTitle">
-    <button type="button" class="host-toggle" id="hostToggle" aria-expanded="true" aria-controls="hostBody">
-      <span class="host-head"><span id="hostTitle">I'm at the gym</span><span class="host-status" id="hostStatus"></span></span>
-      <span class="chev" aria-hidden="true">⌄</span>
-    </button>
+    <div class="host-header">
+      <button type="button" class="host-toggle" id="hostToggle" aria-expanded="true" aria-controls="hostBody">
+        <span class="host-head"><span id="hostTitle">I'm at the gym</span><span class="host-status" id="hostStatus"></span></span>
+        <span class="chev" aria-hidden="true">⌄</span>
+      </button>
+      <a class="dash-pill" id="dashLink" href="#">Dashboard</a>
+    </div>
     <div class="host-body" id="hostBody">
     <p class="only-you">Only you see this (it's the ?admin link)</p>
     <div class="stack">
@@ -356,6 +399,38 @@
 
   <footer id="footer">Only first names on here, emails stay with me, and every email has an exit. No hidden grades.</footer>
 </main>
+
+<!-- ═══ ADMIN DASHBOARD (only with ?admin=KEY&view=dashboard) ═══ -->
+<main class="wrap dash" id="dash" hidden>
+  <div class="dash-top">
+    <a class="dash-back" id="dashBack" href="#">‹ Back to the page</a>
+    <button type="button" class="pg-btn" id="dashRefresh">Refresh</button>
+  </div>
+  <h1 class="dash-title">Dashboard</h1>
+  <p class="dash-sub" id="dashSub">Loading…</p>
+
+  <div class="stats" id="dashStats"></div>
+
+  <section class="dash-sec">
+    <h2>Who's in</h2>
+    <div id="dashSessions"></div>
+  </section>
+
+  <section class="dash-sec">
+    <h2>Pitches</h2>
+    <div id="dashPitches"></div>
+  </section>
+
+  <section class="dash-sec">
+    <div class="dash-sec-head">
+      <h2>Ping list</h2>
+      <button type="button" class="pg-btn" id="copySubs">Copy active emails</button>
+    </div>
+    <div class="chips" id="subFilter" role="group" aria-label="Filter by status"></div>
+    <div id="dashSubs"></div>
+  </section>
+</main>
+
 <script>
 /* ═══════════════════════════════════════════════════════════════
    INK — the rising-paint fill on the yellow buttons (same engine as the invite pages).
@@ -1132,6 +1207,151 @@ const Ink = (() => {
     $('hostOut').addEventListener('click', () => hostPost({ action: 'checkout' }, 'Banner is off.'));
   }
 
+  /* ═══════════════════════════════════════════════════════════════
+     ADMIN DASHBOARD — ?admin=YOUR-KEY&view=dashboard
+     Data comes from Code.gs only when the key is right (emails inside).
+     ═══════════════════════════════════════════════════════════════ */
+  const DASH = ADMIN_KEY && params.get('view') === 'dashboard';
+  const urlWith = view => { const u = new URL(location.href); if (view) u.searchParams.set('view', view); else u.searchParams.delete('view'); return u.toString(); };
+  if (ADMIN_KEY) {
+    $('dashLink').href = urlWith('dashboard');
+    $('dashBack').href = urlWith(null);
+  }
+
+  const fmtDate = t => new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const fmtStamp = t => t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  async function copy(text, btn) {
+    try { await navigator.clipboard.writeText(text); } catch (e) {
+      const t = el('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
+    }
+    const old = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = old; }, 1400);
+  }
+
+  function demoDashboard() {
+    const f = demoFeed(), d = n => Date.now() - n * 86400000;
+    f.sessions[0].people = [
+      { name: 'Tom', email: 'tom@example.com', status: 'going', at: d(3) },
+      { name: 'Lisa', email: 'lisa@example.com', status: 'going', at: d(2) },
+      { name: 'Jan', email: 'jan@example.com', status: 'going', at: d(1) },
+      { name: 'Ben', email: 'ben@example.com', status: 'left', at: d(4) }];
+    f.sessions[1].people = [
+      { name: 'Mo', email: 'mo@example.com', status: 'going', at: d(1) },
+      { name: 'Sara', email: 'sara@example.com', status: 'going', at: d(0) }];
+    f.sessions[2].people = [];
+    return Object.assign(f, { ok: true,
+      requests: [
+        { at: d(0), name: 'Lena', email: 'lena@example.com', gym: 'Prisma', when: 'Thu 15 Oct, evening', note: 'Bringing a friend who has never bouldered' },
+        { at: d(5), name: 'Chris', email: 'chris@example.com', gym: 'Boulderplanet', when: 'flexible', note: '' }],
+      subscribers: [
+        { email: 'anna@example.com', name: 'Anna', status: 'active', at: d(2) },
+        { email: 'kai@example.com', name: '', status: 'pending', at: d(1) },
+        { email: 'old@example.com', name: '', status: 'unsubscribed', at: d(20) },
+        { email: 'jo@example.com', name: 'Jo', status: 'active', at: d(9) }] });
+  }
+
+  let subView = 'active', dashData = null;
+  async function loadDashboard() {
+    $('dashSub').textContent = 'Loading…';
+    let data;
+    try { data = DEMO ? demoDashboard() : await (await fetch(ENDPOINT, { method: 'POST', body: JSON.stringify({ action: 'dashboard', key: ADMIN_KEY }) })).json(); }
+    catch (e) { data = null; }
+    if (!data || !data.ok) {
+      $('dashSub').textContent = data && data.error === 'forbidden' ? 'Wrong admin key in the link.' : 'Couldn\'t load. Try Refresh.';
+      return;
+    }
+    dashData = data;
+    const going = data.sessions.reduce((n, s) => n + s.people.filter(p => p.status === 'going').length, 0);
+    const active = data.subscribers.filter(x => x.status === 'active').length;
+    const recent = data.requests.filter(r => Date.now() - new Date(r.at) < 30 * 86400000).length;
+    $('dashSub').textContent = (data.now ? `You're live at ${data.now.gym} until ${fmtTime(data.now.until)}. ` : 'You\'re off the wall right now. ') +
+      `Updated ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}${DEMO ? ' (demo data)' : ''}.`;
+
+    const stats = $('dashStats'); stats.innerHTML = '';
+    [[data.sessions.length, 'upcoming sessions'], [going, 'sign-ups'], [recent, 'pitches, last 30 days'], [active, 'on the ping list']]
+      .forEach(([n, label]) => { const t = el('div', 'stat'); t.append(el('b', '', n), el('span', '', label)); stats.appendChild(t); });
+
+    // who's in
+    const box = $('dashSessions'); box.innerHTML = '';
+    if (!data.sessions.length) box.appendChild(el('p', 'muted-line', 'No sessions in the calendar for the next weeks.'));
+    data.sessions.forEach(s => {
+      const c = el('div', 'dcard'), head = el('div', 'dcard-head');
+      const goingP = s.people.filter(p => p.status === 'going'), leftP = s.people.filter(p => p.status !== 'going');
+      head.append(el('b', '', `${fmtDate(s.start)}, ${fmtTime(s.start)} at ${s.gym}`), el('span', '', `${goingP.length} going`));
+      c.appendChild(head);
+      if (s.label) c.appendChild(el('p', 'muted-line', s.label));
+      if (!s.people.length) c.appendChild(el('p', 'muted-line', 'Nobody yet.'));
+      const ul = el('ul', 'people');
+      goingP.concat(leftP).forEach(p => {
+        const li = el('li', p.status === 'going' ? '' : 'left');
+        const a = el('a', '', p.email); a.href = 'mailto:' + p.email;
+        li.append(el('span', '', p.name + (p.status === 'going' ? '' : ' (cancelled)')), a);
+        ul.appendChild(li);
+      });
+      if (s.people.length) c.appendChild(ul);
+      if (goingP.length) {
+        const act = el('div', 'row-actions');
+        const b = el('button', 'pg-btn', 'Copy emails'); b.type = 'button';
+        b.onclick = () => copy(goingP.map(p => p.email).join(', '), b);
+        const m = el('a', 'pg-btn', 'Email all');
+        m.href = `mailto:?bcc=${encodeURIComponent(goingP.map(p => p.email).join(','))}&subject=${encodeURIComponent(`Bouldering ${fmtDate(s.start)} at ${s.gym}`)}`;
+        m.style.textDecoration = 'none';
+        act.append(b, m); c.appendChild(act);
+      }
+      box.appendChild(c);
+    });
+
+    // pitches
+    const pb = $('dashPitches'); pb.innerHTML = '';
+    if (!data.requests.length) pb.appendChild(el('p', 'muted-line', 'No pitches yet.'));
+    data.requests.forEach(r => {
+      const c = el('div', 'dcard'), head = el('div', 'dcard-head');
+      head.append(el('b', '', `${r.name}: ${r.gym}`), el('span', '', fmtStamp(r.at)));
+      c.append(head, el('p', 'muted-line', r.when || 'flexible'));
+      if (r.note) c.appendChild(el('p', 'pitch-note', r.note));
+      const act = el('div', 'row-actions');
+      const reply = el('a', 'pg-btn', 'Reply'); reply.style.textDecoration = 'none';
+      reply.href = `mailto:${r.email}?subject=${encodeURIComponent(`Re: bouldering at ${r.gym}`)}`;
+      act.append(reply, el('span', 'muted-line', r.email));
+      c.appendChild(act);
+      pb.appendChild(c);
+    });
+
+    renderSubs();
+  }
+
+  function renderSubs() {
+    const subs = dashData.subscribers, f = $('subFilter'); f.innerHTML = '';
+    ['active', 'pending', 'unsubscribed', 'all'].forEach(k => {
+      const n = k === 'all' ? subs.length : subs.filter(x => x.status === k).length;
+      const c = el('button', 'chip', `${k} ${n}`); c.type = 'button';
+      c.setAttribute('aria-pressed', String(subView === k));
+      c.onclick = () => { subView = k; renderSubs(); };
+      f.appendChild(c);
+    });
+    const box = $('dashSubs'); box.innerHTML = '';
+    const list = subs.filter(x => subView === 'all' || x.status === subView);
+    if (!list.length) box.appendChild(el('p', 'muted-line', 'Nobody here.'));
+    list.forEach(x => {
+      const row = el('div', 'sub-row'), left = el('div');
+      const a = el('a', '', x.email); a.href = 'mailto:' + x.email;
+      left.appendChild(a);
+      const right = el('div'); right.style.display = 'flex'; right.style.gap = '8px'; right.style.alignItems = 'center';
+      right.append(el('span', 'badge ' + x.status, x.status), el('small', '', fmtStamp(x.at)));
+      row.append(left, right);
+      box.appendChild(row);
+    });
+  }
+
+  if (DASH) {
+    document.querySelector('main.wrap:not(.dash)').hidden = true;
+    $('dash').hidden = false;
+    document.title = 'Dashboard';
+    $('dashRefresh').onclick = loadDashboard;
+    $('copySubs').onclick = () => copy(dashData ? dashData.subscribers.filter(x => x.status === 'active').map(x => x.email).join(', ') : '', $('copySubs'));
+    loadDashboard();
+  }
+
   /* ---------- load + keep fresh ---------- */
   async function refresh() {
     try {
@@ -1151,8 +1371,10 @@ const Ink = (() => {
       $('sessions').innerHTML = '<div class="empty-state">The sessions couldn\'t load right now. Pull to refresh, or try again in a minute.</div>';
     }
   }
-  refresh();
-  setInterval(refresh, 60000);
+  if (!DASH) {
+    refresh();
+    setInterval(refresh, 60000);
+  }
   if (DEMO) $('footer').textContent += ' (Demo mode: the sessions shown are examples.)';
 })();
 </script>
