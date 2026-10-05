@@ -103,6 +103,35 @@
   .pg-btn:disabled { opacity: 0.3; cursor: default; }
   .pg-count { font-size: 13px; font-weight: 700; color: var(--dim); font-variant-numeric: tabular-nums; }
 
+  /* ---- loading: a little route of holds lighting up, moonboard-style ---- */
+  .content.pending { display: none; }
+  .content.pending ~ footer { display: none; }      /* footer waits too */
+  .content.revealed ~ footer { animation: contentIn 0.6s cubic-bezier(.16, 1, .3, 1); }
+  .content.revealed { animation: contentIn 0.6s cubic-bezier(.16, 1, .3, 1); }
+  @keyframes contentIn { from { opacity: 0; transform: translateY(12px); } }
+  .loader { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 34px 0 40px; }
+  .loader[hidden] { display: none; }
+  .loader p { margin: 0; font-size: 14px; font-weight: 700; color: var(--muted); min-height: 1.4em; transition: opacity 0.25s ease; }
+  .climber { width: 104px; height: 121px; overflow: visible; }
+  .climber .wall { fill: var(--char-2); }
+  .climber .holds path { fill: var(--yellow); }
+  .climber .holds { animation: wallDown 1.8s linear infinite; }
+  @keyframes wallDown { to { transform: translateY(70px); } }       /* one hold-spacing per cycle → seamless */
+  .climber .limb, .climber .head { fill: none; stroke: var(--cream); stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+  .climber .body { animation: bob 0.9s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-4px); } }
+  .climber .limb { transform-box: view-box; }
+  .climber .arm-l { transform-origin: 60px 58px; animation: armL 1.8s ease-in-out infinite; }
+  .climber .arm-r { transform-origin: 60px 58px; animation: armR 1.8s ease-in-out infinite; }
+  .climber .leg-l { transform-origin: 60px 86px; animation: legL 1.8s ease-in-out infinite; }
+  .climber .leg-r { transform-origin: 60px 86px; animation: legR 1.8s ease-in-out infinite; }
+  /* left arm + right leg reach together, then the other pair */
+  @keyframes armL { 0%, 100% { transform: rotate(0); }   50% { transform: rotate(-62deg) translate(2px, 8px); } }
+  @keyframes armR { 0%, 100% { transform: rotate(0); }   50% { transform: rotate(-42deg); } }
+  @keyframes legL { 0%, 100% { transform: rotate(-22deg); } 50% { transform: rotate(0); } }
+  @keyframes legR { 0%, 100% { transform: rotate(0); }      50% { transform: rotate(24deg); } }
+  @media (prefers-reduced-motion: reduce) { .climber * { animation: none !important; } }
+
   /* ---- rest-day card (shown when I'm not at a gym) ----
      one flat row: charging battery on the left, the words on the right */
   .rest {
@@ -362,6 +391,41 @@
   <h1 id="title">Climb with me</h1>
   <p class="intro" id="intro"></p>
 
+  <!-- shown until the sessions + calendar data have arrived -->
+  <div class="loader" id="loader" role="status" aria-live="polite">
+    <!-- our own little climber: holds scroll down, limbs reach in turns -->
+    <svg class="climber" viewBox="0 0 120 140" aria-hidden="true">
+      <rect x="4" y="4" width="112" height="132" rx="22" class="wall"/>
+      <svg x="10" y="10" width="100" height="120" viewBox="10 10 100 120" overflow="hidden">
+        <g class="holds">
+          <path d="M26 6c6-4 14-1 13 5s-9 7-14 4-4-6 1-9z"/>
+          <path d="M84 30c7-2 12 3 9 8s-11 5-13 0 0-7 4-8z"/>
+          <path d="M30 52c6-3 13 1 11 6s-10 6-13 2-3-6 2-8z"/>
+          <path d="M80 76c6-4 14 0 12 6s-10 6-14 2-3-6 2-8z"/>
+          <path d="M26 6c6-4 14-1 13 5s-9 7-14 4-4-6 1-9z" transform="translate(0 140)"/>
+          <path d="M84 30c7-2 12 3 9 8s-11 5-13 0 0-7 4-8z" transform="translate(0 140)"/>
+          <path d="M30 52c6-3 13 1 11 6s-10 6-13 2-3-6 2-8z" transform="translate(0 140)"/>
+          <path d="M80 76c6-4 14 0 12 6s-10 6-14 2-3-6 2-8z" transform="translate(0 140)"/>
+          <path d="M26 6c6-4 14-1 13 5s-9 7-14 4-4-6 1-9z" transform="translate(0 -70)"/>
+          <path d="M84 30c7-2 12 3 9 8s-11 5-13 0 0-7 4-8z" transform="translate(0 -70)"/>
+          <path d="M30 52c6-3 13 1 11 6s-10 6-13 2-3-6 2-8z" transform="translate(0 70)"/>
+          <path d="M80 76c6-4 14 0 12 6s-10 6-14 2-3-6 2-8z" transform="translate(0 70)"/>
+        </g>
+        <g class="body">
+          <polyline class="limb arm-l" points="60,58 45,46 41,28"/>
+          <polyline class="limb arm-r" points="60,58 77,63 86,54"/>
+          <polyline class="limb leg-l" points="60,86 46,96 47,114"/>
+          <polyline class="limb leg-r" points="60,86 75,98 77,116"/>
+          <line class="limb" x1="60" y1="56" x2="60" y2="88"/>
+          <circle class="head" cx="60" cy="43" r="9"/>
+        </g>
+      </svg>
+    </svg>
+    <p id="loaderText">Chalking up…</p>
+  </div>
+
+  <!-- everything below the intro: hidden until loaded, then revealed at once -->
+  <div class="content pending" id="content">
   <!-- when I'm NOT at a gym: the rest-day card with the charging battery.
      Same spot as the live banner, so this place always answers
      "where is he right now?" -->
@@ -442,6 +506,8 @@
     </div>
     </div>
   </section>
+
+  </div>
 
   <footer id="footer">Only first names on here, emails stay with me, and every email has an exit. No hidden grades.</footer>
 </main>
@@ -782,6 +848,8 @@ const Ink = (() => {
     pitchSent:  'Pitch received. Answer coming by email, probably with a gif.',
     confirmMail:'Check your inbox and confirm. One more click, GDPR says hi.',
     alreadyOn:  'You\'re already on the list.',
+    // while the page loads (rotates every ~1.3 s)
+    loading:    ['Chalking up…', 'Finding my shoes…', 'Reading the beta…', 'Brushing the holds…', 'Checking my skin…'],
 
     // shown under the sessions when I'm not at a gym — one per day, rotating
     restPuns: [
@@ -1519,6 +1587,22 @@ const Ink = (() => {
   }
 
   /* ---------- load + keep fresh ---------- */
+  // loading animation until the first data arrives, then reveal everything at once
+  let loadTick = 0;
+  const loadTimer = setInterval(() => {
+    const t = $('loaderText');
+    t.style.opacity = 0;
+    setTimeout(() => { loadTick++; t.textContent = TEXT.loading[loadTick % TEXT.loading.length]; t.style.opacity = 1; }, 250);
+  }, 1300);
+  function reveal() {
+    if (!$('content').classList.contains('pending')) return;
+    clearInterval(loadTimer);
+    $('loader').hidden = true;
+    $('content').classList.remove('pending');
+    $('content').classList.add('revealed');
+  }
+  setTimeout(reveal, 15000);   // never keep people waiting forever
+
   async function refresh() {
     try {
       feedData = await getFeed();
@@ -1536,6 +1620,7 @@ const Ink = (() => {
     } catch (e) {
       $('sessions').innerHTML = '<div class="empty-state">The sessions couldn\'t load right now. Pull to refresh, or try again in a minute.</div>';
     }
+    reveal();
   }
   if (!DASH) {
     refresh();
