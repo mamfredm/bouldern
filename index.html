@@ -322,9 +322,15 @@
   footer a:hover { color: var(--yellow); }
   .other-invite { display: flex; align-items: center; gap: 14px; margin-top: 26px; padding: 14px 16px;
     border-radius: 16px; background: var(--char-2); color: var(--cream); text-decoration: none;
-    box-shadow: inset 0 0 0 1.5px var(--line); transition: box-shadow 0.2s ease, transform 0.2s ease; }
+    box-shadow: inset 0 0 0 2px var(--yellow); transition: transform 0.2s ease; }
   .other-invite[hidden] { display: none; }
-  .other-invite:hover { box-shadow: inset 0 0 0 1.5px var(--yellow); transform: translateX(3px); }
+  .other-invite:hover { transform: translateX(3px); }
+  .other-invite:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+  /* the splash layer: same card, yellow with charcoal text */
+  .other-invite .ink-top { justify-content: flex-start; gap: 14px; padding: 14px 16px;
+    background: var(--yellow); color: var(--char); }
+  .other-invite .ink-top small { color: rgba(28, 27, 25, 0.72); }
+  .other-invite .ink-top .arrow { color: var(--char); }
   .other-invite .oi-emoji { font-size: 26px; }
   .other-invite b { display: block; font-size: 15px; font-weight: 800; }
   .other-invite small { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); line-height: 1.4; }
@@ -521,7 +527,6 @@
       <span><b>Allergic to chalk?</b><small>There's a version without the falling part: food, drinks or sport.</small></span>
       <span class="arrow" aria-hidden="true">→</span>
     </a>
-  
   </section>
 
   <section class="host" id="host" aria-labelledby="hostTitle">
@@ -953,6 +958,14 @@ const Ink = (() => {
   if (FRIENDS_INVITE_URL && !FRIENDS_INVITE_URL.includes('YOUR-GITHUB-NAME')) {
     $('otherInvite').href = FRIENDS_INVITE_URL;
     $('otherInvite').hidden = false;
+    Ink.attach($('otherInvite'), 'splash');
+    // let the splash finish before leaving (a tap on a phone is over instantly)
+    $('otherInvite').addEventListener('click', e => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+      const href = $('otherInvite').href;
+      setTimeout(() => { location.href = href; }, Ink.wait($('otherInvite')));
+    });
   }
 
   /* ---------- top ---------- */
