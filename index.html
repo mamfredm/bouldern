@@ -255,6 +255,9 @@
   .ask-loading.out { opacity: 0; }
   .ask-loading canvas { display: block; width: 100%; }
   #askGymErr:empty { display: none; }
+  /* "Pick a day": quiet hover, just the arrow nudging forward */
+  .btn-next .nx { display: inline-block; margin-left: 6px; transition: transform 0.2s var(--ease); }
+  .btn-next:hover .nx, .btn-next:focus-visible .nx { transform: translateX(4px); }
 
   /* month calendar — same look as the booking pass on the invite pages */
   .cal {
@@ -509,7 +512,7 @@
       <div class="stack">
         <select id="askGym" aria-label="Gym"></select>
         <div class="err" id="askGymErr"></div>
-        <div id="askNextRow"><button class="btn" id="askNext">Pick a day →</button></div>
+        <div id="askNextRow"><button class="btn btn-next" id="askNext">Pick a day <span class="nx" aria-hidden="true">→</span></button></div>
         <div class="cal ask-loading" id="askLoading" hidden></div>
         <div class="ask-more" id="askMore" hidden>
         <div class="date-row">
@@ -525,8 +528,6 @@
         <div><button class="btn" id="askBtn">Pitch it</button></div>
         </div>
       </div>
-        <p class="privacy" id="privacy">Only first names on here, emails stay with me, and every email has an exit. No hidden grades.</p>
-
     </div>
   </section>
 
@@ -542,6 +543,7 @@
       <span><b>Allergic to chalk?</b><small>There's a version without the falling part: food, drinks or sport.</small></span>
       <span class="arrow" aria-hidden="true">→</span>
     </a>
+    <p class="privacy" id="privacy">Only first names on here, emails stay with me, and every email has an exit. No hidden grades.</p>
   </section>
 
   <section class="host" id="host" aria-labelledby="hostTitle">
@@ -1478,7 +1480,6 @@ const Ink = (() => {
 
   // step 1 → 2: pick a gym, tap "Pick a day", the ticket loader runs while
   // the free/busy check finishes (min ~1.2 s so it doesn't just flash)
-  Ink.attach($('askNext'), 'drip');
   $('askGym').addEventListener('change', () => { $('askGymErr').textContent = ''; });
   $('askNext').addEventListener('click', () => {
     if (!$('askGym').value) { $('askGymErr').textContent = 'Pick a gym first.'; return $('askGym').focus(); }
@@ -1496,7 +1497,7 @@ const Ink = (() => {
           $('askMore').hidden = false;
         });
       })();
-    }, Ink.wait(btn));
+    }, 120);
   });
 
   /* ---------- notify me ---------- */
