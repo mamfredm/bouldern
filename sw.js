@@ -7,8 +7,8 @@
    - Never caches the Apps Script data (sessions, joins…): that always
      comes live from Google.
    Bump VERSION when you change sw.js itself. */
-const VERSION = 'cwm-v3';
-const SHELL = ['./', './index.html', './bungee.woff2', './manifest.webmanifest',
+const VERSION = 'cwm-v4';
+const SHELL = ['./', './index.html', './rechtliches.html', './bungee.woff2', './manifest.webmanifest',
                './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
                './favicon.ico', './favicon-16.png', './favicon-32.png', './favicon-192.png'];
 
