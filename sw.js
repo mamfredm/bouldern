@@ -7,9 +7,10 @@
    - Never caches the Apps Script data (sessions, joins…): that always
      comes live from Google.
    Bump VERSION when you change sw.js itself. */
-const VERSION = 'cwm-v1';
+const VERSION = 'cwm-v3';
 const SHELL = ['./', './index.html', './bungee.woff2', './manifest.webmanifest',
-               './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
+               './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
+               './favicon.ico', './favicon-16.png', './favicon-32.png', './favicon-192.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
