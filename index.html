@@ -285,6 +285,20 @@
     background: var(--char-2); box-shadow: inset 0 0 0 2px var(--yellow); }
   .host.on { display: block; }
   .host .only-you { margin: 10px 0 14px; font-size: 12px; font-weight: 700; color: var(--yellow); }
+  .host-label { margin: 6px 0 -2px; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .host-label span { font-weight: 600; color: var(--dim); }
+  .host-until { width: 100%; background: var(--char); border: 0; box-shadow: inset 0 0 0 1.5px var(--line);
+    border-radius: 12px; padding: 12px 14px; font-size: 16px; color: var(--cream); color-scheme: dark; }
+  .host-until[hidden] { display: none; }
+  /* "for this session" card: today's planned session, one tap */
+  .host-session { display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px; text-align: left;
+    background: var(--char-3); box-shadow: inset 0 0 0 1.5px var(--line); cursor: pointer; }
+  .host-session[hidden] { display: none; }
+  .host-session b { font-size: 15px; font-weight: 800; }
+  .host-session span { font-size: 13px; color: var(--muted); }
+  .host-session[aria-pressed="true"] { background: var(--yellow); color: var(--char); box-shadow: none; }
+  .host-session[aria-pressed="true"] span { color: rgba(28, 27, 25, 0.75); }
+  .live .plan { display: block; margin-top: 4px; font-size: 13px; font-weight: 700; opacity: 0.8; }
   .forget-admin { font-size: 12px; font-weight: 700; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; padding: 0; }
   /* collapsible: the title row is the toggle */
   .host-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: 0; }
@@ -444,6 +458,7 @@
     <div class="pulse"><i></i>right now</div>
     <strong id="liveGym">At Superblock</strong>
     <span class="until" id="liveUntil">until about 21:30, come by</span>
+    <span class="plan" id="livePlan" hidden></span>
   </section>
 
   <section class="section" aria-labelledby="sessionsTitle">
@@ -499,8 +514,13 @@
     <div class="host-body" id="hostBody">
     <p class="only-you">Only you see this. <button type="button" class="forget-admin" id="forgetAdmin">Forget admin on this device</button></p>
     <div class="stack">
+      <div class="host-session" id="hostSession" hidden></div>
       <select id="hostGym" aria-label="Gym"></select>
+      <p class="host-label">How long?</p>
       <div class="chips" id="hostHours" role="group" aria-label="For how long"></div>
+      <input type="time" id="hostUntil" class="host-until" aria-label="Until" hidden>
+      <p class="host-label">Today's plan <span>(optional)</span></p>
+      <div class="chips" id="hostEffort" role="group" aria-label="Planned effort"></div>
       <div class="row-actions">
         <button class="btn" id="hostIn">I'm here</button>
         <button class="btn ghost" id="hostOut">I've left</button>
@@ -830,6 +850,9 @@ const Ink = (() => {
 
   // the time-of-day chips next to the date picker in "Pitch me a session"
   const WHEN_OPTIONS = ['Morning', 'Afternoon', 'Evening'];
+  // ✏️ your check-in options (admin panel)
+  const CHECKIN_HOURS = [1, 2, 3, 4, 5];               // + "until…" with a time picker
+  const EFFORT_OPTIONS = ['warm-up', 'solid session', 'project mode', 'no skin left'];
   const SESSIONS_PER_PAGE = 3;   // ✏️ how many sessions show at once
   const MAX_PAGES = 5;           // ✏️ at most this many pages (3 × 5 = 15 sessions)
   const PITCH_DAYS_AHEAD = 60;   // how far ahead people can pick a day
@@ -840,6 +863,7 @@ const Ink = (() => {
     intro:      'I\'m at the wall most days anyway. Bring shoes, skin and questionable beta.',
     liveTitle:  'Live at {gym}',
     liveUntil:  'Doing weird things till ~{time}. ',    // (the "Directions" link follows)
+    livePlan:   'Today\'s plan: {effort}',
     goingNone:  'Solo session so far. Ruin that.',
     goingMeOnly:'You and me so far',
     goingFew:   '{names} are in',                       // 1–3 people
@@ -978,6 +1002,8 @@ const Ink = (() => {
     a.target = '_blank'; a.rel = 'noopener';
     a.textContent = 'Directions';
     until.appendChild(a);
+    $('livePlan').hidden = !now.effort;
+    if (now.effort) $('livePlan').textContent = fill(TEXT.livePlan, { effort: now.effort });
     el.classList.add('on');
   }
 
@@ -1332,15 +1358,81 @@ const Ink = (() => {
     });
     $('hostToggle').addEventListener('click', () => setOpen($('hostBody').hidden));
     fillGymSelect($('hostGym'), false);
-    const hours = chips($('hostHours'), [{ label: '1 hour', value: 1 }, { label: '2 hours', value: 2 }, { label: '3 hours', value: 3 }], 2);
+
+    // how long: 1–5 h or "until…" (time picker); a planned session today overrides both
+    const hours = chips($('hostHours'),
+      CHECKIN_HOURS.map(h => ({ label: h + (h === 1 ? ' hour' : ' hours'), value: h })).concat([{ label: 'until…', value: 'until' }]), 2);
+    $('hostHours').addEventListener('click', () => {
+      $('hostUntil').hidden = hours() !== 'until';
+      if (hours() === 'until' && !$('hostUntil').value) {
+        const t = new Date(Date.now() + 3 * 3600000);
+        $('hostUntil').value = String(t.getHours()).padStart(2, '0') + ':' + String(Math.floor(t.getMinutes() / 15) * 15).padStart(2, '0');
+      }
+      useSession(false);
+    });
+    const effort = chips($('hostEffort'), EFFORT_OPTIONS, null);
+    // tap a selected effort chip again to clear it
+    $('hostEffort').addEventListener('click', e => {
+      const c = e.target.closest('.chip');
+      if (c && c.dataset.was === 'true') { c.setAttribute('aria-pressed', 'false'); c.dataset.was = ''; effortCleared = true; return; }
+      $('hostEffort').querySelectorAll('.chip').forEach(x => x.dataset.was = x.getAttribute('aria-pressed'));
+      effortCleared = false;
+    });
+    let effortCleared = false;
+    const effortValue = () => effortCleared ? '' : (effort() || '');
+
+    // "For this session": today's planned session that is running or starts within 4 h
+    let hostSession = null, sessionPicked = false;
+    function useSession(on) {
+      sessionPicked = on && !!hostSession;
+      $('hostSession').setAttribute('aria-pressed', String(sessionPicked));
+      $('hostGym').disabled = sessionPicked;
+      $('hostHours').style.opacity = sessionPicked ? 0.45 : 1;
+      if (sessionPicked) $('hostUntil').hidden = true;
+    }
+    $('hostSession').addEventListener('click', () => useSession(!sessionPicked));
+    window.__updateHostSession = list => {
+      const now = Date.now();
+      const s = (list || []).find(x => x.end > now && x.start - now < 4 * 3600000);
+      const changed = (s && s.id) !== (hostSession && hostSession.id);
+      hostSession = s || null;
+      $('hostSession').hidden = !hostSession;
+      if (!hostSession) { useSession(false); return; }
+      $('hostSession').innerHTML = '';
+      const b = document.createElement('b');
+      b.textContent = `For this session: ${s.label || 'planned session'}`;
+      const sp = document.createElement('span');
+      sp.textContent = `${fmtTime(s.start)}–${fmtTime(s.end)} at ${s.gym}. Live until it ends, even if you're early.`;
+      $('hostSession').append(b, sp);
+      $('hostSession').setAttribute('role', 'button');
+      $('hostSession').tabIndex = 0;
+      if (changed) useSession(true);   // preselect when a session shows up
+    };
+
     const hostPost = async (data, okText) => {
       const res = await post(Object.assign({ key: ADMIN_KEY }, data)).catch(() => null);
       $('hostErr').textContent = !res ? 'No connection.' : res.ok ? okText : res.error === 'forbidden' ? 'Wrong admin key in the link.' : 'Didn\'t work, try again.';
       if (res && res.ok) refresh();
     };
     $('hostIn').addEventListener('click', () => {
-      const g = findGym($('hostGym').value) || { name: $('hostGym').value };
-      hostPost({ action: 'checkin', gym: g.name, location: g.address ? g.name + ', ' + g.address : g.name, hours: hours() }, 'You\'re live.');
+      let gymName, location, until;
+      if (sessionPicked && hostSession) {
+        gymName = hostSession.gym; location = hostSession.location || hostSession.gym; until = hostSession.end;
+      } else {
+        const g = findGym($('hostGym').value) || { name: $('hostGym').value };
+        gymName = g.name; location = g.address ? g.name + ', ' + g.address : g.name;
+        if (hours() === 'until') {
+          const [h, m] = ($('hostUntil').value || '').split(':').map(Number);
+          const t = new Date(); t.setHours(h || 0, m || 0, 0, 0);
+          if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);    // e.g. "until 01:00" = after midnight
+          until = t.getTime();
+        } else {
+          until = Date.now() + (Number(hours()) || 2) * 3600000;
+        }
+      }
+      if (until - Date.now() > 8 * 3600000) { $('hostErr').textContent = 'Max 8 hours. Even your skin needs a break.'; return; }
+      hostPost({ action: 'checkin', gym: gymName, location, until, effort: effortValue() },
+               `You're live until ${fmtTime(until)}.`);
     });
     $('hostOut').addEventListener('click', () => hostPost({ action: 'checkout' }, 'Banner is off.'));
   }
@@ -1390,7 +1482,7 @@ const Ink = (() => {
         const at = (days, h, m) => { const x = new Date(); x.setDate(x.getDate() - days); x.setHours(h, m, 0, 0); return +x; };
         return [
           { gym: 'Superblock', type: 'spontaneous', checkIn: at(0, 18, 42), plannedUntil: at(0, 21, 0), checkOut: null, minutes: null, closedBy: '' },
-          { gym: 'Superblock', type: 'planned', checkIn: at(2, 18, 55), plannedUntil: at(2, 21, 0), checkOut: at(2, 21, 15), minutes: 140, closedBy: 'manual' },
+          { gym: 'Superblock', type: 'planned', checkIn: at(2, 18, 55), plannedUntil: at(2, 21, 0), checkOut: at(2, 21, 15), minutes: 140, closedBy: 'manual', effort: 'project mode' },
           { gym: 'Einstein Düsseldorf', type: 'spontaneous', checkIn: at(5, 11, 10), plannedUntil: at(5, 13, 10), checkOut: at(5, 13, 10), minutes: 120, closedBy: 'auto' },
           { gym: 'Superblock', type: 'planned', checkIn: at(9, 19, 2), plannedUntil: at(9, 21, 0), checkOut: at(9, 21, 40), minutes: 158, closedBy: 'manual' },
           { gym: 'Superblock', type: 'planned', checkIn: at(16, 19, 0), plannedUntil: at(16, 21, 0), checkOut: at(16, 20, 50), minutes: 110, closedBy: 'manual' }
@@ -1542,7 +1634,7 @@ const Ink = (() => {
       const row = el('div', 'visit-row' + (open ? ' open' : ''));
       row.appendChild(el('b', '', `${fmtDate(x.checkIn)} at ${x.gym}`));
       const d = el('div', 'vd', open ? 'live' : dur(Number(x.minutes)));
-      const tag = el('small', '', x.type === 'spontaneous' ? 'spontaneous' : 'planned');
+      const tag = el('small', '', (x.type === 'spontaneous' ? 'spontaneous' : 'planned') + (x.effort ? ', ' + x.effort : ''));
       d.appendChild(tag);
       row.appendChild(d);
       const times = open ? `since ${fmtTime(x.checkIn)}, planned till ${fmtTime(x.plannedUntil)}`
@@ -1611,6 +1703,7 @@ const Ink = (() => {
       feedData = await getFeed();
       if (feedData.error) throw new Error(feedData.error);
       renderLive(feedData.now, feedData.sessions);
+      if (ADMIN_KEY && window.__updateHostSession) window.__updateHostSession(feedData.sessions);
       if (ADMIN_KEY) {
         const st = $('hostStatus');
         st.textContent = feedData.now ? `live until ${fmtTime(feedData.now.until)}` : 'off';
