@@ -115,6 +115,8 @@
   @keyframes contentIn { from { opacity: 0; transform: translateY(12px); } }
   .loader { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 34px 0 40px; }
   .loader[hidden] { display: none; }
+  .dash-loading [data-tab], .dash-loading .stats, .dash-loading .dash-sec, .dash-loading .dash-sub:empty { display: none !important; }
+  .dash-loading #dashLoader { padding-top: 60px; }
   .loader p { margin: 0; font-size: 14px; font-weight: 700; color: var(--muted); min-height: 1.4em; transition: opacity 0.25s ease; }
   .climber { width: 104px; height: 121px; overflow: visible; }
   .climber .wall { fill: var(--char-2); }
@@ -751,11 +753,9 @@
         </div>
         <div class="err" id="askErr"></div>
         <div><button class="btn" id="askBtn">Pitch it</button></div>
-                  <p class="privacy" id="privacy">Only first names on here, emails stay with me, and every email has an exit. No hidden grades.</p>
-
+        <p class="privacy" id="privacy">Only first names on here, emails stay with me, and every email has an exit. No hidden grades.</p>
         </div>
       </div>
-
     </div>
   </section>
 
@@ -1900,11 +1900,41 @@ const Ink = (() => {
   }
 
   let subView = 'active', dashData = null;
+  // ✏️ what the little climber says while the dashboard loads (rotates)
+  const DASH_LOADING = ['Chalking up…', 'Reading the logbook…', 'Counting who\'s in…', 'Tallying your skin damage…', 'Brushing the stats…'];
+  let dashLoader = null;
+  function showDashLoader() {
+    if (dashLoader) return;
+    const l = $('loader').cloneNode(true);           // same climber as the page loader
+    l.id = 'dashLoader'; l.hidden = false;
+    const t = l.querySelector('p'); t.id = ''; t.textContent = DASH_LOADING[0];
+    $('dashSub').after(l);
+    $('dash').classList.add('dash-loading');
+    let i = 0;
+    const timer = setInterval(() => {
+      t.style.opacity = 0;
+      setTimeout(() => { i++; t.textContent = DASH_LOADING[i % DASH_LOADING.length]; t.style.opacity = 1; }, 250);
+    }, 1300);
+    dashLoader = { el: l, timer, since: Date.now() };
+  }
+  function hideDashLoader() {
+    if (!dashLoader) return Promise.resolve();
+    const d = dashLoader; dashLoader = null;
+    const wait = Math.max(0, 900 - (Date.now() - d.since));    // don't just flash
+    return new Promise(res => setTimeout(() => {
+      clearInterval(d.timer); d.el.remove();
+      $('dash').classList.remove('dash-loading');
+      res();
+    }, wait));
+  }
+
   async function loadDashboard() {
-    $('dashSub').textContent = 'Loading…';
+    $('dashSub').textContent = dashData ? 'Refreshing…' : '';
+    if (!dashData) showDashLoader();                 // first load: the climber; later: just the line
     let data;
     try { data = DEMO ? demoDashboard() : await (await fetch(ENDPOINT, { method: 'POST', body: JSON.stringify({ action: 'dashboard', key: ADMIN_KEY }) })).json(); }
     catch (e) { data = null; }
+    await hideDashLoader();
     if (!data || !data.ok) {
       $('dashSub').textContent = data && data.error === 'forbidden' ? 'Wrong admin key in the link.' : 'Couldn\'t load. Try Refresh.';
       return;
