@@ -583,6 +583,51 @@
   .tb-btn[hidden], .qr-actions .btn[hidden], .menu [hidden] { display: none; }
   .dash.tabbed .dash-title { display: none; }
   .dash.tabbed .dash-sub { margin: 4px 0 6px; }
+
+  /* ---- pitch: picked day as a chip + the time ring ---- */
+  .day-chip { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 14px; background: var(--yellow); color: var(--char); font-weight: 800; font-size: 15px; }
+  .day-chip[hidden], .time-ring[hidden], #askCal[hidden] { display: none; }
+  .day-chip .big { font-family: 'Bungee', var(--sans); font-size: 26px; line-height: 1; }
+  .day-chip .chg { margin-left: auto; font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; color: var(--char); }
+  .time-ring { display: grid; gap: 6px; }
+  .tr-hint { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  .tr-dial { position: relative; width: min(100%, 300px); aspect-ratio: 1; margin: 0 auto; border-radius: 50%; outline-offset: 6px; touch-action: none; }
+  .tr-dial svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .tr-dial svg:active { cursor: grabbing; }
+  .tr-read { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
+  .tr-read b { font-family: 'Bungee', var(--sans); font-weight: 400; font-size: clamp(32px, 11vw, 42px); line-height: 1; color: var(--cream); }
+  .tr-read span { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
+  .tr-tick { stroke: var(--dim); stroke-width: 2; stroke-linecap: round; }
+  .tr-num { font: 800 11px var(--sans); fill: var(--dim); }
+  .tr-busy { font: 800 11px var(--sans); fill: var(--muted); }
+  .tr-sel { transition: d 0.12s ease; }
+  .tr-knob circle { fill: var(--char); stroke: var(--yellow); stroke-width: 4; }
+  .tr-knob text { font-size: 17px; }
+  .tr-legend { display: flex; justify-content: center; gap: 16px; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .tr-legend i { display: inline-block; width: 14px; height: 9px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+  .tr-legend .y { background: var(--yellow); }
+  .tr-legend .h { background: repeating-linear-gradient(45deg, #5a5449 0 3px, #3a362f 3px 6px); }
+  .time-ring .chips { justify-content: center; margin-top: 4px; }
+
+  /* ---- pitch sent: the ticket ---- */
+  .pitch-ticket { background: var(--yellow); color: var(--char); border-radius: 18px; padding: 20px 20px 16px; animation: formIn 0.45s var(--ease);
+    -webkit-mask: radial-gradient(circle 11px at 0 66%, transparent 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 11px at 100% 66%, transparent 98%, #000) right / 51% 100% no-repeat;
+    mask: radial-gradient(circle 11px at 0 66%, transparent 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 11px at 100% 66%, transparent 98%, #000) right / 51% 100% no-repeat; }
+  .pitch-ticket .k { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+  .pitch-ticket .t { font-family: 'Bungee', var(--sans); font-size: 23px; line-height: 1.08; margin: 4px 0 12px; }
+  .pitch-ticket dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; font-size: 14px; }
+  .pitch-ticket dt { font-weight: 800; opacity: 0.65; } .pitch-ticket dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+  .pitch-ticket .perf { border-top: 2px dashed rgba(28, 27, 25, 0.35); margin: 14px 0 10px; }
+  .pitch-ticket .st { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 800; margin-top: 5px; }
+  .pitch-ticket .st i { width: 10px; height: 10px; border-radius: 50%; background: var(--char); opacity: 0.3; flex: none; }
+  .pitch-ticket .st i.on { opacity: 1; background: #2b7a3d; }
+  .pitch-sent-note { margin: 12px 2px 0; color: var(--muted); font-size: 13px; }
+  .pitch-status { display: inline-block; margin-left: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 800; vertical-align: 1px;
+    background: var(--char-3); color: var(--muted); }
+  .pitch-status.accepted { background: rgba(31, 174, 91, 0.16); color: #4fd18a; }
+  .pitch-status.open { background: rgba(252, 186, 1, 0.14); color: var(--yellow); }
+  .dcard.is-withdrawn { opacity: 0.55; }
+  .btn-yes { padding: 9px 14px; font-size: 14px; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -744,7 +789,16 @@
         <div class="ask-more" id="askMore" hidden>
         <div class="date-row">
           <div class="cal" id="askCal" role="group" aria-label="Pick a day"></div>
-          <div class="chips" id="askWhen" role="group" aria-label="Time of day"></div>
+          <div class="day-chip" id="askDayChip" hidden><span class="big" id="dcNum"></span><span id="dcLabel"></span><button type="button" class="chg" id="dcChange">change</button></div>
+          <div class="time-ring" id="askTime" hidden>
+            <p class="tr-hint">What time? Drag the chalk bag ✋</p>
+            <div class="tr-dial" id="trKnob" tabindex="0" role="slider" aria-label="Start time" aria-valuemin="8" aria-valuemax="22">
+              <svg id="trSvg" viewBox="0 0 300 300" aria-hidden="true"></svg>
+              <div class="tr-read" aria-hidden="true"><b id="trTime">–</b><span id="trUntil"></span></div>
+            </div>
+            <div class="tr-legend" aria-hidden="true"><span><i class="y"></i>your time</span><span><i class="h"></i>I'm busy</span></div>
+            <div class="chips" id="askDur" role="group" aria-label="How long"></div>
+          </div>
         </div>
         <textarea id="askNote" maxlength="400" placeholder="Anything else? A time that suits you, a friend tagging along, snack requests"></textarea>
         <div class="fields">
@@ -1150,7 +1204,7 @@ const Ink = (() => {
     joined:     'You\'re on the list. Don\'t flake, the wall remembers.',
     cantMake:   'Skin needs a break',
     emptyList:  'Nothing planned yet. My forearms are on vacation. Pitch me a day below.',
-    pitchSent:  'Pitch received. Answer coming by email, probably with a gif.',
+    pitchSent:  'Answer comes by email, probably with a gif.',
     confirmMail:'Check your inbox and confirm. One more click, GDPR says hi.',
     alreadyOn:  'You\'re already on the list.',
     // while the page loads (rotates every ~1.3 s)
@@ -1616,8 +1670,114 @@ const Ink = (() => {
 
   /* ---------- ask for another gym / day ---------- */
   fillGymSelect($('askGym'), true);
-  const askWhen = chips($('askWhen'), WHEN_OPTIONS, null);
-  const PART_LETTERS = ['m', 'a', 'e'];   // Morning / Afternoon / Evening, same order as WHEN_OPTIONS
+  /* ---------- time ring for "Pitch me a session" ----------
+     After a day is picked: a ring from 8:00 to 22:30. Drag the chalk bag
+     (or use the arrow keys); it snaps every 30 min and skips the parts of
+     the day my calendar says are busy. Yellow arc = the time + duration. */
+  const RING = { start: 8, end: 22.5, step: 0.5, gap: 44 };          // ✏️ hours shown on the ring
+  const RING_PARTS = { m: [8, 12], a: [12, 17], e: [17, 22.5] };      // same parts as Code.gs dayParts
+  const DURATIONS = [{ label: '1 h', value: 60 }, { label: '2 h', value: 120 }, { label: '3 h', value: 180 }, { label: 'no idea', value: 0 }];
+  const ring = (function () {
+    const NS = 'http://www.w3.org/2000/svg', C = 150, R = 116, W = 26, SPAN = RING.end - RING.start;
+    const svg = $('trSvg');
+    let day = null, letters = '', t = null, dur = 120, minT = RING.start, dragging = false, onChange = () => {};
+    const deg = h => 90 + RING.gap / 2 + ((h - RING.start) / SPAN) * (360 - RING.gap);
+    const pt = (h, r) => { const a = deg(h) * Math.PI / 180; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
+    const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+    function arc(h1, h2, attrs) {
+      h2 = Math.max(h2, h1 + 0.02);
+      const [x1, y1] = pt(h1, R), [x2, y2] = pt(h2, R);
+      const large = ((h2 - h1) / SPAN) * (360 - RING.gap) > 180 ? 1 : 0;
+      return el('path', Object.assign({ d: `M${x1} ${y1} A${R} ${R} 0 ${large} 1 ${x2} ${y2}`, fill: 'none', 'stroke-width': W, 'stroke-linecap': 'round' }, attrs));
+    }
+    const busyAt = h => [...letters].some(l => RING_PARTS[l] && h >= RING_PARTS[l][0] && h < RING_PARTS[l][1]);
+    const valid = h => h >= minT && h <= RING.end - RING.step && !busyAt(h);
+    const fmt = h => `${String(Math.floor(h)).padStart(2, '0')}:${h % 1 ? '30' : '00'}`;
+    function nearestValid(h) {
+      h = Math.round(h / RING.step) * RING.step;
+      for (let d = 0; d <= SPAN; d += RING.step) {
+        if (valid(h - d)) return h - d;
+        if (valid(h + d)) return h + d;
+      }
+      return null;
+    }
+    function draw() {
+      svg.innerHTML = '';
+      const defs = el('defs', {});
+      const pat = el('pattern', { id: 'trHatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+      el('rect', { width: 6, height: 6, fill: '#3a362f' }, pat); el('rect', { width: 3, height: 6, fill: '#5a5449' }, pat);
+      arc(RING.start, RING.end, { stroke: '#36332d' });
+      if (minT > RING.start) arc(RING.start, Math.min(minT, RING.end), { stroke: '#2b2925', 'stroke-linecap': 'butt' });   // already over today
+      Object.keys(RING_PARTS).forEach(l => {
+        if (!letters.includes(l)) return;
+        const [a, b] = RING_PARTS[l];
+        arc(Math.max(a, RING.start), Math.min(b, RING.end), { stroke: 'url(#trHatch)', 'stroke-linecap': 'butt' });
+        const [lx, ly] = pt((a + b) / 2, R + W / 2 + 13);
+        el('text', { x: lx, y: ly + 4, 'text-anchor': 'middle', class: 'tr-busy' }).textContent = 'busy';
+      });
+      for (let h = Math.ceil(RING.start); h <= Math.floor(RING.end); h++) {
+        const [x1, y1] = pt(h, R - W / 2 - 4), [x2, y2] = pt(h, R - W / 2 - (h % 2 ? 7 : 11));
+        el('line', { x1, y1, x2, y2, class: 'tr-tick' });
+        if (h % 2 === 0) { const [tx, ty] = pt(h, R - W / 2 - 22); el('text', { x: tx, y: ty + 4, 'text-anchor': 'middle', class: 'tr-num' }).textContent = h; }
+      }
+      if (t !== null) {
+        arc(t, dur ? Math.min(t + dur / 60, RING.end) : t, { stroke: 'var(--yellow)', class: 'tr-sel' });
+        const [kx, ky] = pt(t, R);
+        const knob = el('g', { class: 'tr-knob', transform: `translate(${kx} ${ky})` });
+        el('circle', { r: 19 }, knob);
+        el('text', { y: 6, 'text-anchor': 'middle' }, knob).textContent = '✋';
+      }
+      $('trTime').textContent = t === null ? '–' : fmt(t);
+      $('trUntil').textContent = t === null ? 'no free slot this day' : dur ? `till ~${fmt(Math.min(t + dur / 60, 24))}` : 'open end';
+      const k = $('trKnob');
+      k.setAttribute('aria-valuenow', t === null ? '' : t);
+      k.setAttribute('aria-valuetext', t === null ? 'no free time' : fmt(t));
+    }
+    function set(h, user) {
+      const n = h === null ? null : nearestValid(h);
+      if (n === t) return;
+      t = n; draw(); onChange();
+      if (user && navigator.vibrate) navigator.vibrate(6);
+    }
+    function fromPointer(e) {
+      const r = svg.getBoundingClientRect();
+      const x = (e.clientX - r.left) * 300 / r.width - C, y = (e.clientY - r.top) * 300 / r.height - C;
+      let a = Math.atan2(y, x) * 180 / Math.PI; if (a < 0) a += 360;
+      let f = ((a - 90 - RING.gap / 2) % 360 + 360) % 360 / (360 - RING.gap);
+      if (f > 1) f = f > 1 + (RING.gap / (360 - RING.gap)) / 2 ? 0 : 1;      // in the gap: nearest end
+      set(RING.start + f * SPAN, true);
+    }
+    svg.addEventListener('pointerdown', e => { dragging = true; svg.setPointerCapture(e.pointerId); fromPointer(e); e.preventDefault(); });
+    svg.addEventListener('pointermove', e => { if (dragging) fromPointer(e); });
+    ['pointerup', 'pointercancel'].forEach(n => svg.addEventListener(n, () => { dragging = false; }));
+    $('trKnob').addEventListener('keydown', e => {
+      if (t === null) return;
+      const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+      if (step) {
+        e.preventDefault();
+        for (let h = t + step * RING.step; h >= RING.start && h <= RING.end; h += step * RING.step) if (valid(h)) return set(h, true);
+      }
+      if (e.key === 'Home') { e.preventDefault(); set(RING.start, true); }
+      if (e.key === 'End') { e.preventDefault(); set(RING.end, true); }
+    });
+    return {
+      // a new day (or new busy info for the same day)
+      show(d, busyLetters) {
+        const sameDay = day && d && +day === +d;
+        day = d; letters = busyLetters || '';
+        const now = new Date();
+        minT = RING.start;
+        if (d && d.toDateString() === now.toDateString()) minT = Math.ceil((now.getHours() + now.getMinutes() / 60 + 1) / RING.step) * RING.step;
+        t = nearestValid(sameDay && t !== null ? t : 18);            // ✏️ starts at 18:00, or the closest free time
+        draw();
+      },
+      setDuration(m) { dur = m; draw(); },
+      value: () => t === null ? null : { time: fmt(t), minutes: dur },
+      onChange: fn => { onChange = fn; }
+    };
+  })();
+  const askDur = chips($('askDur'), DURATIONS, 120);
+  $('askDur').addEventListener('click', () => setTimeout(() => ring.setDuration(askDur() ?? 120)));
   /* Month calendar (same look as the booking pass on the invite pages).
      Tap a day to pick it, tap it again to stay flexible. */
   const cal = (function (box) {
@@ -1664,7 +1824,7 @@ const Ink = (() => {
         if (busy.has(key(date))) b.classList.add('has');
         if (selected && +date === +selected) { b.classList.add('sel'); b.setAttribute('aria-pressed', 'true'); }
         b.setAttribute('aria-label', date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }));
-        b.onclick = () => { selected = selected && +selected === +date ? null : date; draw(); onPick(selected ? (avail[isoKey(selected)] || '') : ''); };
+        b.onclick = () => { selected = selected && +selected === +date ? null : date; draw(); onPick(selected ? (avail[isoKey(selected)] || '') : '', true); };
         grid.appendChild(b);
       }
       const hint = document.createElement('p');
@@ -1676,12 +1836,26 @@ const Ink = (() => {
     return {
       value: () => selected,
       mark: list => { busy = new Set(list.map(x => key(new Date(x.start)))); draw(); },
-      availability: map => { avail = map || {}; draw(); onPick(selected ? (avail[isoKey(selected)] || '') : ''); },
+      availability: map => { avail = map || {}; draw(); onPick(selected ? (avail[isoKey(selected)] || '') : '', false); },
       onPick: fn => { onPick = fn; }
     };
   })($('askCal'));
 
-  cal.onPick(busyLetters => askWhen.disable(PART_LETTERS.map((l, i) => busyLetters.includes(l) ? i : -1).filter(i => i >= 0)));
+  // picked a day → it folds into a chip and the time ring appears; "change" opens the month again
+  function showDay(d) {
+    $('dcNum').textContent = d.getDate();
+    $('dcLabel').textContent = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+  cal.onPick((busyLetters, byUser) => {
+    const d = cal.value();
+    if (!d) { $('askCal').hidden = false; $('askDayChip').hidden = true; $('askTime').hidden = true; return; }
+    ring.show(d, busyLetters);
+    if (!byUser) return;                       // background refresh: just update the busy parts
+    showDay(d);
+    $('askCal').hidden = true; $('askDayChip').hidden = false; $('askTime').hidden = false;
+    $('askDayChip').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('dcChange').addEventListener('click', () => { $('askCal').hidden = false; $('askDayChip').hidden = true; $('askTime').hidden = true; });
   $('askName').value = me.name; $('askEmail').value = me.email;
   $('askBtn').addEventListener('click', async () => {
     const err = $('askErr'), gym = $('askGym').value, name = $('askName').value.trim(), email = $('askEmail').value.trim();
@@ -1691,19 +1865,34 @@ const Ink = (() => {
     err.textContent = '';
     const btn = $('askBtn'); btn.disabled = true;
     const minWait = new Promise(r => setTimeout(r, Ink.wait(btn)));
-    const dv = cal.value();
+    const dv = cal.value(), tv = dv ? ring.value() : null;
     const dayLabel = dv ? dv.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
-    const when = [dayLabel, (askWhen() || '').toLowerCase()].filter(Boolean).join(', ') || 'flexible';
-    const res = await post({ action: 'request', gym, when, note: $('askNote').value.trim(), name, email }).catch(() => null);
+    const durText = tv && tv.minutes ? ` (~${tv.minutes / 60} h)` : '';
+    const when = dv ? dayLabel + (tv ? ', ' + tv.time + durText : '') : 'flexible';
+    const iso = dv ? `${dv.getFullYear()}-${String(dv.getMonth() + 1).padStart(2, '0')}-${String(dv.getDate()).padStart(2, '0')}` : '';
+    const g = findGym(gym), location = g && g.address ? `${g.name}, ${g.address}` : gym;
+    const note = $('askNote').value.trim();
+    const res = await post({ action: 'request', gym, location, when, note, name, email,
+      date: iso, time: tv ? tv.time : '', minutes: tv ? tv.minutes : 0 }).catch(() => null);
     await minWait;
     btn.disabled = false;
     if (!res || !res.ok) { err.textContent = 'That didn\'t go through. Try again in a moment.'; return; }
     me = { name, email }; store.set('cwm-me', me);
+    // the ticket: what was pitched, and where it stands
     const panel = btn.closest('.panel');
-    const done = document.createElement('p');
-    done.className = 'ok-note';
-    done.textContent = DEMO ? 'Demo mode: nothing was sent.' : TEXT.pitchSent;
-    panel.querySelector('.stack').replaceChildren(done);
+    const tk = document.createElement('div'); tk.className = 'pitch-ticket';
+    const line = (k, v) => v ? `<dt>${k}</dt><dd>${v.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</dd>` : '';
+    const esc1 = v => v.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    tk.innerHTML = `<div class="k">your pitch</div><div class="t">${esc1(gym)}<br>${esc1(dv ? dayLabel + (tv ? ' · ' + tv.time : '') : 'any day')}</div>
+      <dl>${line('Who', name)}${line('How long', tv && tv.minutes ? '~' + tv.minutes / 60 + ' h' : '')}${line('Note', note)}</dl>
+      <div class="perf"></div>
+      <div class="st"><i class="on"></i>sent</div>
+      <div class="st"><i></i>${esc1(HOST.name ? HOST.name + ' says' : 'I say')} yes, or suggests another time</div>`;
+    const sentNote = document.createElement('p'); sentNote.className = 'pitch-sent-note';
+    sentNote.textContent = DEMO ? 'Demo mode: nothing was sent.' : `📬 A copy is on its way to ${email.replace(/^(.).*(@.*)$/, '$1…$2')}.`;
+    panel.querySelector('h2').textContent = 'Pitch sent 🤙';
+    panel.querySelector('.sub').textContent = TEXT.pitchSent;
+    panel.querySelector('.stack').replaceChildren(tk, sentNote);
   });
   Ink.attach($('askBtn'), 'drip');
 
@@ -1880,8 +2069,9 @@ const Ink = (() => {
     f.sessions[2].people = [];
     return Object.assign(f, { ok: true,
       requests: [
-        { at: d(0), name: 'Lena', email: 'lena@example.com', gym: 'Prisma', when: 'Thu 15 Oct, evening', note: 'Bringing a friend who has never bouldered' },
-        { at: d(5), name: 'Chris', email: 'chris@example.com', gym: 'Boulderplanet', when: 'flexible', note: '' }],
+        { at: d(0), name: 'Lena', email: 'lena@example.com', gym: 'Prisma', when: 'Thu 15 Oct, 18:30 (~2 h)', note: 'Bringing a friend who has never bouldered', status: 'open', acceptUrl: '#demo' },
+        { at: d(2), name: 'Sam', email: 'sam@example.com', gym: 'Superblock', when: 'Mon 12 Oct, 19:00 (~2 h)', note: '', status: 'accepted' },
+        { at: d(5), name: 'Chris', email: 'chris@example.com', gym: 'Boulderplanet', when: 'flexible', note: '', status: 'withdrawn' }],
       subscribers: [
         { email: 'anna@example.com', name: 'Anna', status: 'active', at: d(2) },
         { email: 'kai@example.com', name: '', status: 'pending', at: d(1) },
@@ -2002,11 +2192,19 @@ const Ink = (() => {
     data.requests.forEach(r => {
       const c = el('div', 'dcard'), head = el('div', 'dcard-head');
       head.append(el('b', '', `${r.name}: ${r.gym}`), el('span', '', fmtStamp(r.at)));
-      c.append(head, el('p', 'muted-line', r.when || 'flexible'));
+      const st = r.status || 'open';
+      const badge = el('span', 'pitch-status ' + st, { open: 'open', accepted: 'it\'s on ✓', withdrawn: 'withdrawn' }[st] || st);
+      const whenLine = el('p', 'muted-line', r.when || 'flexible'); whenLine.append(' ', badge);
+      c.append(head, whenLine);
+      if (st === 'withdrawn') c.classList.add('is-withdrawn');
       if (r.note) c.appendChild(el('p', 'pitch-note', r.note));
       const act = el('div', 'row-actions');
       const reply = el('a', 'pg-btn', 'Reply'); reply.style.textDecoration = 'none';
       reply.href = `mailto:${r.email}?subject=${encodeURIComponent(`Re: bouldering at ${r.gym}`)}`;
+      if (r.acceptUrl) {                           // one tap: confirm page → calendar + invite
+        const yes = el('a', 'btn btn-yes', 'Yes, it\'s on'); yes.href = r.acceptUrl; yes.target = '_blank'; yes.rel = 'noopener';
+        act.append(yes);
+      }
       act.append(reply, el('span', 'muted-line', r.email));
       c.appendChild(act);
       pb.appendChild(c);
