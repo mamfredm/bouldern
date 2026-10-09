@@ -607,6 +607,15 @@
   .tr-legend i { display: inline-block; width: 14px; height: 9px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
   .tr-legend .y { background: var(--yellow); }
   .tr-legend .h { background: repeating-linear-gradient(45deg, #5a5449 0 3px, #3a362f 3px 6px); }
+  .tr-legend .c { background: #1f6b3d; box-shadow: inset 0 0 0 1.5px #4fd18a; }
+  .tr-climb { font-size: 13px; }
+  .tr-join { background: rgba(31, 174, 91, 0.1); border-radius: 14px; padding: 12px 14px; box-shadow: inset 0 0 0 1.5px rgba(79, 209, 138, 0.35); }
+  .tr-join[hidden] { display: none; }
+  .tr-join-h { margin: 0 0 8px; font-weight: 800; font-size: 14px; color: #8fe3b4; }
+  .tr-join-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 14px; font-weight: 700; }
+  .tr-join-row .btn { padding: 9px 13px; font-size: 13.5px; flex: none; }
+  .tr-join-row .btn:disabled { opacity: 0.6; }
+  .tr-join-or { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
   .time-ring .chips { justify-content: center; margin-top: 4px; }
 
   /* ---- pitch sent: the ticket ---- */
@@ -791,12 +800,13 @@
           <div class="cal" id="askCal" role="group" aria-label="Pick a day"></div>
           <div class="day-chip" id="askDayChip" hidden><span class="big" id="dcNum"></span><span id="dcLabel"></span><button type="button" class="chg" id="dcChange">change</button></div>
           <div class="time-ring" id="askTime" hidden>
+            <div class="tr-join" id="trJoin" hidden></div>
             <p class="tr-hint">What time? Drag the chalk bag ✋</p>
             <div class="tr-dial" id="trKnob" tabindex="0" role="slider" aria-label="Start time" aria-valuemin="8" aria-valuemax="22">
               <svg id="trSvg" viewBox="0 0 300 300" aria-hidden="true"></svg>
               <div class="tr-read" aria-hidden="true"><b id="trTime">–</b><span id="trUntil"></span></div>
             </div>
-            <div class="tr-legend" aria-hidden="true"><span><i class="y"></i>your time</span><span><i class="h"></i>I'm busy</span></div>
+            <div class="tr-legend" aria-hidden="true"><span><i class="y"></i>your time</span><span><i class="h"></i>I'm busy</span><span><i class="c"></i>I'm climbing</span></div>
             <div class="chips" id="askDur" role="group" aria-label="How long"></div>
           </div>
         </div>
@@ -1313,6 +1323,12 @@ const Ink = (() => {
         [3, 4].forEach(d => out[k(d)] = 'ma');
         out[k(11)] = 'mae'; out[k(12)] = 'mae';
         return out;
+      })(),
+      availabilitySlots: (() => {   // fake 30-min busy slots (from 08:00): day +5 busy 14:00–16:00
+        const k = d => { const x = new Date(); x.setDate(x.getDate() + d);
+          return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+        const free = '0'.repeat(29), busy = (a, b) => free.split('').map((c, i) => i >= (a - 8) * 2 && i < (b - 8) * 2 ? '1' : '0').join('');
+        return { [k(5)]: busy(14, 16), [k(2)]: busy(18, 22.5) };
       })()
     };
   }
@@ -1418,6 +1434,7 @@ const Ink = (() => {
     const d = dayParts(s.start);
     const card = document.createElement('article');
     card.className = 'session' + (sameDay(s.start, Date.now()) ? ' today' : '') + (mine ? ' mine' : '');
+    card.dataset.sid = s.id;
     card.innerHTML = `
       <div class="day" aria-hidden="true"><b></b><span></span></div>
       <div>
@@ -1563,10 +1580,10 @@ const Ink = (() => {
     });
     const get = () => value;
     // disable some options (e.g. busy parts of a day); clears a selection that became busy
-    get.disable = indexes => els.forEach((c, i) => {
+    get.disable = (indexes, word) => els.forEach((c, i) => {
       const off = indexes.includes(i);
       c.disabled = off;
-      c.textContent = off ? `${c.dataset.label} (${TEXT.partBusy})` : c.dataset.label;
+      c.textContent = off ? `${c.dataset.label} (${word || TEXT.partBusy})` : c.dataset.label;
       if (off && c.getAttribute('aria-pressed') === 'true') { c.setAttribute('aria-pressed', 'false'); value = null; }
     });
     return get;
@@ -1672,15 +1689,17 @@ const Ink = (() => {
   fillGymSelect($('askGym'), true);
   /* ---------- time ring for "Pitch me a session" ----------
      After a day is picked: a ring from 8:00 to 22:30. Drag the chalk bag
-     (or use the arrow keys); it snaps every 30 min and skips the parts of
-     the day my calendar says are busy. Yellow arc = the time + duration. */
-  const RING = { start: 8, end: 22.5, step: 0.5, gap: 44 };          // ✏️ hours shown on the ring
-  const RING_PARTS = { m: [8, 12], a: [12, 17], e: [17, 22.5] };      // same parts as Code.gs dayParts
+     (or use the arrow keys); it snaps every 30 min. A time only counts if
+     the whole duration fits between busy half hours (and planned sessions,
+     which you can join instead). Yellow arc = the time + duration. */
+  const RING = { start: 8, end: 22.5, step: 0.5, gap: 44 };          // ✏️ hours shown on the ring (same as SLOT_FROM/TO in Code.gs)
+  const RING_PARTS = { m: [8, 12], a: [12, 17], e: [17, 22.5] };      // fallback when only morning/afternoon/evening is known
   const DURATIONS = [{ label: '1 h', value: 60 }, { label: '2 h', value: 120 }, { label: '3 h', value: 180 }, { label: 'no idea', value: 0 }];
   const ring = (function () {
     const NS = 'http://www.w3.org/2000/svg', C = 150, R = 116, W = 26, SPAN = RING.end - RING.start;
+    const N = Math.round(SPAN / RING.step);                            // number of half-hour slots
     const svg = $('trSvg');
-    let day = null, letters = '', t = null, dur = 120, minT = RING.start, dragging = false, onChange = () => {};
+    let day = null, busy = [], climb = [], t = null, dur = 120, minT = RING.start, dragging = false, onChange = () => {};
     const deg = h => 90 + RING.gap / 2 + ((h - RING.start) / SPAN) * (360 - RING.gap);
     const pt = (h, r) => { const a = deg(h) * Math.PI / 180; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
     const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
@@ -1690,17 +1709,27 @@ const Ink = (() => {
       const large = ((h2 - h1) / SPAN) * (360 - RING.gap) > 180 ? 1 : 0;
       return el('path', Object.assign({ d: `M${x1} ${y1} A${R} ${R} 0 ${large} 1 ${x2} ${y2}`, fill: 'none', 'stroke-width': W, 'stroke-linecap': 'round' }, attrs));
     }
-    const busyAt = h => [...letters].some(l => RING_PARTS[l] && h >= RING_PARTS[l][0] && h < RING_PARTS[l][1]);
-    const valid = h => h >= minT && h <= RING.end - RING.step && !busyAt(h);
+    const idx = h => Math.round((h - RING.start) / RING.step);
+    const slotsFor = m => Math.max(1, Math.round((m || 30) / 30));
+    // a start time is fine if every half hour of the stay is free, it ends by 22:30 and isn't over yet
+    function fits(h, m) {
+      if (h < minT) return false;
+      const i = idx(h), n = slotsFor(m);
+      if (i < 0 || i + n > N) return false;
+      for (let k = i; k < i + n; k++) if (busy[k] || climb[k]) return false;
+      return true;
+    }
     const fmt = h => `${String(Math.floor(h)).padStart(2, '0')}:${h % 1 ? '30' : '00'}`;
-    function nearestValid(h) {
+    function nearestValid(h, m = dur) {
       h = Math.round(h / RING.step) * RING.step;
       for (let d = 0; d <= SPAN; d += RING.step) {
-        if (valid(h - d)) return h - d;
-        if (valid(h + d)) return h + d;
+        if (fits(h - d, m)) return h - d;
+        if (fits(h + d, m)) return h + d;
       }
       return null;
     }
+    // contiguous runs of true in an array of slots → [[fromHour, toHour], …]
+    const runs = arr => { const out = []; let s = -1; for (let k = 0; k <= N; k++) { if (arr[k] && s < 0) s = k; if (!arr[k] && s >= 0) { out.push([RING.start + s * RING.step, RING.start + k * RING.step]); s = -1; } } return out; };
     function draw() {
       svg.innerHTML = '';
       const defs = el('defs', {});
@@ -1708,12 +1737,14 @@ const Ink = (() => {
       el('rect', { width: 6, height: 6, fill: '#3a362f' }, pat); el('rect', { width: 3, height: 6, fill: '#5a5449' }, pat);
       arc(RING.start, RING.end, { stroke: '#36332d' });
       if (minT > RING.start) arc(RING.start, Math.min(minT, RING.end), { stroke: '#2b2925', 'stroke-linecap': 'butt' });   // already over today
-      Object.keys(RING_PARTS).forEach(l => {
-        if (!letters.includes(l)) return;
-        const [a, b] = RING_PARTS[l];
-        arc(Math.max(a, RING.start), Math.min(b, RING.end), { stroke: 'url(#trHatch)', 'stroke-linecap': 'butt' });
-        const [lx, ly] = pt((a + b) / 2, R + W / 2 + 13);
-        el('text', { x: lx, y: ly + 4, 'text-anchor': 'middle', class: 'tr-busy' }).textContent = 'busy';
+      runs(busy).forEach(([a, b]) => {
+        arc(a, b, { stroke: 'url(#trHatch)', 'stroke-linecap': 'butt' });
+        if (b - a >= 1) { const [lx, ly] = pt((a + b) / 2, R + W / 2 + 13); el('text', { x: lx, y: ly + 4, 'text-anchor': 'middle', class: 'tr-busy' }).textContent = 'busy'; }
+      });
+      runs(climb).forEach(([a, b]) => {                                 // a session I already planned
+        arc(a, b, { stroke: '#1f6b3d', 'stroke-linecap': 'butt' });
+        arc(a, b, { stroke: '#4fd18a', 'stroke-width': 3, 'stroke-dasharray': '2 5', 'stroke-linecap': 'round' });
+        const [lx, ly] = pt((a + b) / 2, R + W / 2 + 13); el('text', { x: lx, y: ly + 5, 'text-anchor': 'middle', class: 'tr-climb' }).textContent = '🧗';
       });
       for (let h = Math.ceil(RING.start); h <= Math.floor(RING.end); h++) {
         const [x1, y1] = pt(h, R - W / 2 - 4), [x2, y2] = pt(h, R - W / 2 - (h % 2 ? 7 : 11));
@@ -1728,10 +1759,10 @@ const Ink = (() => {
         el('text', { y: 6, 'text-anchor': 'middle' }, knob).textContent = '✋';
       }
       $('trTime').textContent = t === null ? '–' : fmt(t);
-      $('trUntil').textContent = t === null ? 'no free slot this day' : dur ? `till ~${fmt(Math.min(t + dur / 60, 24))}` : 'open end';
+      $('trUntil').textContent = t === null ? 'no gap that long' : dur ? `till ~${fmt(t + dur / 60)}` : 'open end';
       const k = $('trKnob');
       k.setAttribute('aria-valuenow', t === null ? '' : t);
-      k.setAttribute('aria-valuetext', t === null ? 'no free time' : fmt(t));
+      k.setAttribute('aria-valuetext', t === null ? 'no free time' : fmt(t) + (dur ? ' to ' + fmt(t + dur / 60) : ''));
     }
     function set(h, user) {
       const n = h === null ? null : nearestValid(h);
@@ -1755,29 +1786,81 @@ const Ink = (() => {
       const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
       if (step) {
         e.preventDefault();
-        for (let h = t + step * RING.step; h >= RING.start && h <= RING.end; h += step * RING.step) if (valid(h)) return set(h, true);
+        for (let h = t + step * RING.step; h >= RING.start && h <= RING.end; h += step * RING.step) if (fits(h, dur)) return set(h, true);
       }
       if (e.key === 'Home') { e.preventDefault(); set(RING.start, true); }
       if (e.key === 'End') { e.preventDefault(); set(RING.end, true); }
     });
     return {
-      // a new day (or new busy info for the same day)
-      show(d, busyLetters) {
+      // a new day (or new busy info for the same day).
+      // info = { slots: '0011…' (30-min, from Code.gs) | letters: 'ae' (fallback), sessions: [{start, end}] }
+      show(d, info) {
         const sameDay = day && d && +day === +d;
-        day = d; letters = busyLetters || '';
+        day = d;
+        busy = new Array(N).fill(false); climb = new Array(N).fill(false);
+        if (info.slots && info.slots.length >= N) for (let k = 0; k < N; k++) busy[k] = info.slots[k] === '1';
+        else [...(info.letters || '')].forEach(l => { const p = RING_PARTS[l]; if (p) for (let k = idx(p[0]); k < idx(p[1]); k++) busy[k] = true; });
+        (info.sessions || []).forEach(s => {
+          const a = new Date(s.start), b = new Date(s.end);
+          const from = a.getHours() + a.getMinutes() / 60, to = b.toDateString() === a.toDateString() ? b.getHours() + b.getMinutes() / 60 : RING.end;
+          for (let k = Math.max(0, Math.floor((from - RING.start) / RING.step)); k < Math.min(N, Math.ceil((to - RING.start) / RING.step)); k++) climb[k] = true;
+        });
         const now = new Date();
         minT = RING.start;
         if (d && d.toDateString() === now.toDateString()) minT = Math.ceil((now.getHours() + now.getMinutes() / 60 + 1) / RING.step) * RING.step;
-        t = nearestValid(sameDay && t !== null ? t : 18);            // ✏️ starts at 18:00, or the closest free time
+        t = nearestValid(sameDay && t !== null ? t : 18);            // ✏️ starts at 18:00, or the closest time that fits
         draw();
       },
-      setDuration(m) { dur = m; draw(); },
+      setDuration(m) { dur = m; t = nearestValid(t === null ? 18 : t); draw(); onChange(); },
+      // which durations fit anywhere on this day (to grey out the others)
+      fitsAny: m => { for (let h = RING.start; h < RING.end; h += RING.step) if (fits(h, m)) return true; return false; },
       value: () => t === null ? null : { time: fmt(t), minutes: dur },
       onChange: fn => { onChange = fn; }
     };
   })();
   const askDur = chips($('askDur'), DURATIONS, 120);
   $('askDur').addEventListener('click', () => setTimeout(() => ring.setDuration(askDur() ?? 120)));
+  // durations that don't fit anywhere that day get greyed out
+  function syncDurations() {
+    const off = DURATIONS.map((o, i) => o.value && !ring.fitsAny(o.value) ? i : -1).filter(i => i >= 0);
+    askDur.disable(off, 'no gap');
+    if (askDur() === null) { const ok = DURATIONS.find((o, i) => !off.includes(i)); $('askDur').querySelectorAll('.chip')[DURATIONS.indexOf(ok)].click(); }
+  }
+  // planned sessions that day: offer to join one instead of pitching
+  function sessionsOn(d) { return ((feedData && feedData.sessions) || []).filter(s => new Date(s.start).toDateString() === d.toDateString()); }
+  function showJoinHint(list) {
+    const box = $('trJoin'); box.innerHTML = '';
+    box.hidden = !list.length;
+    if (!list.length) return;
+    const h = document.createElement('p'); h.className = 'tr-join-h';
+    h.textContent = list.length === 1 ? '🧗 I\'m already on the wall that day' : '🧗 I\'m already on the wall that day, twice';
+    box.appendChild(h);
+    list.forEach(s => {
+      const row = document.createElement('div'); row.className = 'tr-join-row';
+      const t = document.createElement('span');
+      t.textContent = `${fmtTime(s.start)}–${fmtTime(s.end)} · ${s.gym}` + ((s.going || []).length ? ` · ${(s.going || []).length} in` : '');
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn';
+      b.textContent = myJoins[s.id] ? 'You\'re in ✓' : 'Join this one';
+      b.disabled = !!myJoins[s.id];
+      b.addEventListener('click', () => openJoin(s.id));
+      row.append(t, b); box.appendChild(row);
+    });
+    const or = document.createElement('p'); or.className = 'tr-join-or'; or.textContent = 'or pitch another time below';
+    box.appendChild(or);
+  }
+  // jump to that session's card in "Next sessions" and open its join form
+  function openJoin(id) {
+    const all = ((feedData && feedData.sessions) || []).slice(0, SESSIONS_PER_PAGE * MAX_PAGES);
+    const i = all.findIndex(s => s.id === id);
+    if (i < 0) return;
+    page = Math.floor(i / SESSIONS_PER_PAGE);
+    renderSessions(feedData.sessions);
+    const card = document.querySelector(`.session[data-sid="${CSS.escape(id)}"]`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const btn = card.querySelector('.row-actions .btn');
+    if (btn && !card.querySelector('.join-form.open')) setTimeout(() => btn.click(), 450);
+  }
   /* Month calendar (same look as the booking pass on the invite pages).
      Tap a day to pick it, tap it again to stay flexible. */
   const cal = (function (box) {
@@ -1849,7 +1932,11 @@ const Ink = (() => {
   cal.onPick((busyLetters, byUser) => {
     const d = cal.value();
     if (!d) { $('askCal').hidden = false; $('askDayChip').hidden = true; $('askTime').hidden = true; return; }
-    ring.show(d, busyLetters);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const onDay = sessionsOn(d);
+    ring.show(d, { slots: feedData && feedData.availabilitySlots ? feedData.availabilitySlots[iso] || '' : null, letters: busyLetters, sessions: onDay });
+    syncDurations();
+    showJoinHint(onDay);
     if (!byUser) return;                       // background refresh: just update the busy parts
     showDay(d);
     $('askCal').hidden = true; $('askDayChip').hidden = false; $('askTime').hidden = false;
