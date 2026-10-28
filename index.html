@@ -119,7 +119,7 @@
   /* the page loader is the same yellow ticket as the booking pass (ticketLoader) */
   #loader, #dashLoader { margin: 6px 0 34px; }
   /* climber shown while the join form is being sent */
-  .climb-wait { display: flex; align-items: center; gap: 16px; padding: 2px 0; animation: formIn 0.35s var(--ease); }
+  .climb-wait { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 14px 0 8px; text-align: center; animation: formIn 0.35s var(--ease); }
   .climb-wait[hidden] { display: none; }
   .climb-wait .climber .wall { fill: var(--char-3); }
   .climb-wait p { margin: 0; font-size: 14px; font-weight: 700; color: var(--muted); min-height: 1.4em; transition: opacity 0.25s ease; }
@@ -1501,18 +1501,21 @@ const Ink = (() => {
               </g>
             </svg>
           </svg>`;
-  const SENDING = ['Chalking up…', 'Finding my shoes…', 'Reading the beta…', 'Brushing the holds…', 'Sending your invite…'];   // ✏️ what the climber says while sending
-  function climbWait(anchor, texts) {
+  const WAIT_LINES = ['Chalking up…', 'Finding my shoes…', 'Reading the beta…', 'Brushing the holds…'];   // ✏️ what the climber says while sending
+  const SENDING = WAIT_LINES.concat('Sending your invite…');
+  const SENDING_PITCH = WAIT_LINES.concat('Sending your pitch…');
+  const SENDING_PING = WAIT_LINES.concat('Adding you to the list…');
+  function climbWait(anchor, texts) {                // hides `anchor` (the button row) while the climber runs
     const el = document.createElement('div');
     el.className = 'climb-wait'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
     el.innerHTML = CLIMBER_SVG + '<p></p>';
     const t = el.querySelector('p'); let i = 0; t.textContent = texts[0];
-    anchor.after(el);
+    anchor.after(el); anchor.style.display = 'none';
     const timer = setInterval(() => {
       t.style.opacity = 0;
       setTimeout(() => { i++; t.textContent = texts[i % texts.length]; t.style.opacity = 1; }, 250);
     }, 1300);
-    return { stop() { clearInterval(timer); el.remove(); } };
+    return { stop() { clearInterval(timer); el.remove(); anchor.style.display = ''; } };
   }
 
   async function joinSession(s, form) {
@@ -1525,13 +1528,11 @@ const Ink = (() => {
     const btn = form.querySelector('[type=submit]');
     const btnRow = btn.parentElement;
     btn.disabled = true;
-    btnRow.hidden = true;                                   // the climber takes the button's place while we wait
-    const wait = climbWait(btnRow, SENDING);
+    const wait = climbWait(btnRow, SENDING);                // the climber takes the button's place while we wait
     const minWait = new Promise(r => setTimeout(r, 900));   // don't just flash on a fast connection
     const res = await post({ action: 'join', sessionId: s.id, name, email }).catch(() => null);
     await minWait;
     wait.stop();
-    btnRow.hidden = false;
     btn.disabled = false;
     if (!res || !res.ok) {
       err.textContent = res && res.error === 'session_gone'
@@ -1976,7 +1977,8 @@ const Ink = (() => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'I need an email to answer you.'; return $('askEmail').focus(); }
     err.textContent = '';
     const btn = $('askBtn'); btn.disabled = true;
-    const minWait = new Promise(r => setTimeout(r, Ink.wait(btn)));
+    const wait = climbWait(btn.parentElement, SENDING_PITCH);
+    const minWait = new Promise(r => setTimeout(r, 900));   // don't just flash on a fast connection
     const dv = cal.value(), tv = dv ? ring.value() : null;
     const dayLabel = dv ? dv.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
     const durText = tv && tv.minutes ? ` (~${tv.minutes / 60} h)` : '';
@@ -1987,6 +1989,7 @@ const Ink = (() => {
     const res = await post({ action: 'request', gym, location, when, note, name, email,
       date: iso, time: tv ? tv.time : '', minutes: tv ? tv.minutes : 0 }).catch(() => null);
     await minWait;
+    wait.stop();
     btn.disabled = false;
     if (!res || !res.ok) { err.textContent = 'That didn\'t go through. Try again in a moment.'; return; }
     me = { name, email }; store.set('cwm-me', me);
@@ -2037,9 +2040,11 @@ const Ink = (() => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'That email doesn\'t look right.'; return $('notifyEmail').focus(); }
     err.textContent = '';
     const btn = $('notifyBtn'); btn.disabled = true;
-    const minWait = new Promise(r => setTimeout(r, Ink.wait(btn)));
+    const wait = climbWait(btn.closest('.inline'), SENDING_PING);
+    const minWait = new Promise(r => setTimeout(r, 900));   // don't just flash on a fast connection
     const res = await post({ action: 'subscribe', email, name: me.name }).catch(() => null);
     await minWait;
+    wait.stop();
     btn.disabled = false;
     if (!res || !res.ok) { err.textContent = 'That didn\'t go through. Try again in a moment.'; return; }
     const done = document.createElement('p');
