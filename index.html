@@ -118,6 +118,31 @@
   @keyframes contentIn { from { opacity: 0; transform: translateY(12px); } }
   /* the page loader is the same yellow ticket as the booking pass (ticketLoader) */
   #loader, #dashLoader { margin: 6px 0 34px; }
+  /* climber shown while the join form is being sent */
+  .climb-wait { display: flex; align-items: center; gap: 16px; padding: 2px 0; animation: formIn 0.35s var(--ease); }
+  .climb-wait[hidden] { display: none; }
+  .climb-wait .climber .wall { fill: var(--char-3); }
+  .climb-wait p { margin: 0; font-size: 14px; font-weight: 700; color: var(--muted); min-height: 1.4em; transition: opacity 0.25s ease; }
+  .climber { width: 74px; height: 86px; flex: none; overflow: visible; }
+  .climber .wall { fill: var(--char-2); }
+  .climber .holds path { fill: var(--yellow); }
+  .climber .holds { animation: wallDown 1.8s linear infinite; }
+  @keyframes wallDown { to { transform: translateY(70px); } }       /* one hold-spacing per cycle → seamless */
+  .climber .limb, .climber .head { fill: none; stroke: var(--cream); stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+  .climber .body { animation: bob 0.9s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-4px); } }
+  .climber .limb { transform-box: view-box; }
+  .climber .arm-l { transform-origin: 60px 58px; animation: armL 1.8s ease-in-out infinite; }
+  .climber .arm-r { transform-origin: 60px 58px; animation: armR 1.8s ease-in-out infinite; }
+  .climber .leg-l { transform-origin: 60px 86px; animation: legL 1.8s ease-in-out infinite; }
+  .climber .leg-r { transform-origin: 60px 86px; animation: legR 1.8s ease-in-out infinite; }
+  /* left arm + right leg reach together, then the other pair */
+  @keyframes armL { 0%, 100% { transform: rotate(0); }   50% { transform: rotate(-62deg) translate(2px, 8px); } }
+  @keyframes armR { 0%, 100% { transform: rotate(0); }   50% { transform: rotate(-42deg); } }
+  @keyframes legL { 0%, 100% { transform: rotate(-22deg); } 50% { transform: rotate(0); } }
+  @keyframes legR { 0%, 100% { transform: rotate(0); }      50% { transform: rotate(24deg); } }
+  @media (prefers-reduced-motion: reduce) { .climber * { animation: none !important; } }
+
   .dash-loading [data-tab], .dash-loading .stats, .dash-loading .dash-sec, .dash-loading .dash-sub:empty { display: none !important; }
   .dash-loading #dashLoader { margin-top: 40px; }
 
@@ -1447,6 +1472,49 @@ const Ink = (() => {
     return card;
   }
 
+  /* ---------- climber wait: our little climber + rotating lines while a form is being sent ---------- */
+  const CLIMBER_SVG = `
+      <svg class="climber" viewBox="0 0 120 140" aria-hidden="true">
+            <rect x="4" y="4" width="112" height="132" rx="22" class="wall"/>
+            <svg x="10" y="10" width="100" height="120" viewBox="10 10 100 120" overflow="hidden">
+              <g class="holds">
+                <path d="M26 6c6-4 14-1 13 5s-9 7-14 4-4-6 1-9z"/>
+                <path d="M84 30c7-2 12 3 9 8s-11 5-13 0 0-7 4-8z"/>
+                <path d="M30 52c6-3 13 1 11 6s-10 6-13 2-3-6 2-8z"/>
+                <path d="M80 76c6-4 14 0 12 6s-10 6-14 2-3-6 2-8z"/>
+                <path d="M26 6c6-4 14-1 13 5s-9 7-14 4-4-6 1-9z" transform="translate(0 140)"/>
+                <path d="M84 30c7-2 12 3 9 8s-11 5-13 0 0-7 4-8z" transform="translate(0 140)"/>
+                <path d="M30 52c6-3 13 1 11 6s-10 6-13 2-3-6 2-8z" transform="translate(0 140)"/>
+                <path d="M80 76c6-4 14 0 12 6s-10 6-14 2-3-6 2-8z" transform="translate(0 140)"/>
+                <path d="M26 6c6-4 14-1 13 5s-9 7-14 4-4-6 1-9z" transform="translate(0 -70)"/>
+                <path d="M84 30c7-2 12 3 9 8s-11 5-13 0 0-7 4-8z" transform="translate(0 -70)"/>
+                <path d="M30 52c6-3 13 1 11 6s-10 6-13 2-3-6 2-8z" transform="translate(0 70)"/>
+                <path d="M80 76c6-4 14 0 12 6s-10 6-14 2-3-6 2-8z" transform="translate(0 70)"/>
+              </g>
+              <g class="body">
+                <polyline class="limb arm-l" points="60,58 45,46 41,28"/>
+                <polyline class="limb arm-r" points="60,58 77,63 86,54"/>
+                <polyline class="limb leg-l" points="60,86 46,96 47,114"/>
+                <polyline class="limb leg-r" points="60,86 75,98 77,116"/>
+                <line class="limb" x1="60" y1="56" x2="60" y2="88"/>
+                <circle class="head" cx="60" cy="43" r="9"/>
+              </g>
+            </svg>
+          </svg>`;
+  const SENDING = ['Chalking up…', 'Finding my shoes…', 'Reading the beta…', 'Brushing the holds…', 'Sending your invite…'];   // ✏️ what the climber says while sending
+  function climbWait(anchor, texts) {
+    const el = document.createElement('div');
+    el.className = 'climb-wait'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+    el.innerHTML = CLIMBER_SVG + '<p></p>';
+    const t = el.querySelector('p'); let i = 0; t.textContent = texts[0];
+    anchor.after(el);
+    const timer = setInterval(() => {
+      t.style.opacity = 0;
+      setTimeout(() => { i++; t.textContent = texts[i % texts.length]; t.style.opacity = 1; }, 250);
+    }, 1300);
+    return { stop() { clearInterval(timer); el.remove(); } };
+  }
+
   async function joinSession(s, form) {
     const err = form.querySelector('.err');
     const name = form.name.value.trim(), email = form.email.value.trim();
@@ -1455,10 +1523,15 @@ const Ink = (() => {
     if (!form.ok.checked) { err.textContent = 'Tick the box, otherwise the invite can\'t find you.'; return; }
     err.textContent = '';
     const btn = form.querySelector('[type=submit]');
+    const btnRow = btn.parentElement;
     btn.disabled = true;
-    const minWait = new Promise(r => setTimeout(r, Ink.wait(btn)));   // let the paint rise first
+    btnRow.hidden = true;                                   // the climber takes the button's place while we wait
+    const wait = climbWait(btnRow, SENDING);
+    const minWait = new Promise(r => setTimeout(r, 900));   // don't just flash on a fast connection
     const res = await post({ action: 'join', sessionId: s.id, name, email }).catch(() => null);
     await minWait;
+    wait.stop();
+    btnRow.hidden = false;
     btn.disabled = false;
     if (!res || !res.ok) {
       err.textContent = res && res.error === 'session_gone'
