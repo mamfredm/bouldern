@@ -563,6 +563,8 @@
   .fab .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--char); opacity: 0.35; }
   .fab.live .dot { background: #1fae5b; opacity: 1; box-shadow: 0 0 0 2px rgba(28, 27, 25, 0.25); }
   .fab[hidden] { display: none; }
+  /* leave room under the footer so the floating button never sits on top of it */
+  body:has(.fab:not([hidden])) main.wrap { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
   body.has-fab .wrap { padding-bottom: 110px; }
   .sheet .host { display: block; margin: 0; padding: 0; box-shadow: none; background: none; border-radius: 0; }
   .sheet .host-header { display: none; }
